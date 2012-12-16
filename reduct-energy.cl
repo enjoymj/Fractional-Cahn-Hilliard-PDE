@@ -42,7 +42,7 @@ __kernel void reduction_eng(
   if(lid == 0)
      {
 	
-	c[grp ] = l_a[0];
+	d[grp ] = l_a[0];
 	
 	}
 
