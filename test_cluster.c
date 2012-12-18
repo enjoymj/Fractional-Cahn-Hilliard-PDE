@@ -1187,7 +1187,7 @@ void main(int argc, char** argv)
 	get_timestamp(&time2);
 	elapsed = timestamp_diff_in_seconds(time1,time2);
 	printf("Navie 2D FFT of size %d * %d matrix  on gpu takes %f s\n", N,N,elapsed);
-	printf("achieve %f GFLOPS \n",6*8*N*N*k/elapsed*1e-9);
+	printf("achieve %f GFLOPS \n",6*2*N*N*k/elapsed*1e-9);
 	printf("---------------------------------------------\n");
 	//printf("data access from global achieve %f GB/s\n",sizeof(float)*2*16*N*N/elapsed*1e-9);
 	CALL_CL_GUARDED(clFinish, (queue));
@@ -1197,7 +1197,7 @@ void main(int argc, char** argv)
 	get_timestamp(&time2);
 	elapsed = timestamp_diff_in_seconds(time1,time2);
 	printf("local data exchange 2D FFT of size %d * %d matrix  on gpu takes %f s\n", N,N,elapsed);
-	printf("achieve %f GFLOPS \n",6*8*N*N*k/elapsed*1e-9);
+	printf("achieve %f GFLOPS \n",6*2*N*N*k/elapsed*1e-9);
 	printf("---------------------------------------------\n");
 
 
@@ -1208,7 +1208,7 @@ void main(int argc, char** argv)
 	get_timestamp(&time2);
 	elapsed = timestamp_diff_in_seconds(time1,time2);
 	printf("Hierarchy 2D FFT of size %d * %d matrix  on gpu takes %f s\n", N,N,elapsed);
-	printf("achieve %f GFLOPS \n",6*8*N*N*k/elapsed*1e-9);
+	printf("achieve %f GFLOPS \n",6*2*N*N*k/elapsed*1e-9);
 	printf("---------------------------------------------\n");
 
 
@@ -1220,7 +1220,7 @@ void main(int argc, char** argv)
 	get_timestamp(&time2);
 	elapsed = timestamp_diff_in_seconds(time1,time2);
 	printf("Using 2D kernel 2D FFT of size %d * %d matrix  on gpu takes %f s\n", N,N,elapsed);
-	printf("achieve %f GFLOPS \n",6*8*N*N*k/elapsed*1e-9);
+	printf("achieve %f GFLOPS \n",6*2*N*N*k/elapsed*1e-9);
 	printf("---------------------------------------------\n");
 
 
