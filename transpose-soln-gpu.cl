@@ -9,7 +9,8 @@ __kernel void transpose(
     int option,
     float epsilon,
     float k,
-    float s)
+    float s,
+    long offset)
 {
 
   local float2 l_a[16][16];
@@ -17,16 +18,17 @@ __kernel void transpose(
   long jg = get_group_id(1);
   long il = get_local_id(0);
   long jl = get_local_id(1);
-
-  long i = ig * BLK + il;
-  long j = jg * BLK + jl;
+  int ilsz = get_local_size(0);
+  int jlsz = get_local_size(1);
+  long i = ig * ilsz + il;
+  long j = jg * ilsz + jl;
   int N =n;
   //l_a[il][jl] = a[i + n*j];
   if(0 == option)
-    l_a[il][jl] = a[i + n*j];
+    l_a[il][jl] = a[offset + i + n*j];
   else if(1 == option)
     {
-	float2 pr = a[i+ n*j];
+	float2 pr = a[offset + i+ n*j];
 	float a_i,a_j;
 	if(i <= N/2)
 	  a_i = i;
@@ -43,7 +45,7 @@ __kernel void transpose(
     }
   else if(2 == option)
   {
-      	float2 pr = a[i+ n*j];
+      	float2 pr = a[offset + i+ n*j];
      	float a_i,a_j;
 	if(i <= N/2)
 	{
@@ -65,7 +67,7 @@ __kernel void transpose(
   }
   else if (3 == option)
   {
-	float2 pr = a[i+ n*j];
+	float2 pr = a[offset + i+ n*j];
      	float a_i,a_j;
 	if(i <= N/2)
 	  a_i = i;
@@ -82,7 +84,7 @@ __kernel void transpose(
   }
   else if(4 == option)
   {
-      	float2 pr = a[i+ n*j];
+      	float2 pr = a[offset + i+ n*j];
      	float a_i,a_j;
 	if(i <= N/2)
 	  a_i = i;
@@ -99,11 +101,11 @@ __kernel void transpose(
   }
   else if(-1 == option)
   {
- 	l_a[il][jl] = (float2 )(a[i + n*j].x/(N*N),0);
+ 	l_a[il][jl] = (float2 )(a[offset + i + n*j].x/(N*N),0);
   }
   else if(5 == option)
   {
-	float2 pr = a[i+ n*j];
+	float2 pr = a[offset + i+ n*j];
      	float a_j;
 	if(j < N/2)
 	  a_j = j;
@@ -119,7 +121,7 @@ __kernel void transpose(
   }
   else if(6 == option)
   {
-	float2 pr = a[i+ n*j];
+	float2 pr = a[offset + i+ n*j];
      	float a_i;
 	if(i < N/2)
 	  a_i = i;
@@ -134,6 +136,6 @@ __kernel void transpose(
 	l_a[il][jl] = pr;
   }
   barrier(CLK_LOCAL_MEM_FENCE);
-  b[jg*BLK + n*ig*BLK + il + jl*n ] = l_a[jl][il] ;
+  b[offset + jg*jlsz + n*ig*ilsz + il + jl*n ] = l_a[jl][il] ;
 
 }
