@@ -988,10 +988,6 @@ void main(int argc, char** argv)
 	cl_command_queue queue;
 	create_context_on("NVIDIA","GeForce GTX 590",0,&ctx,&queue,0);
 
-	cl_context ctx1;
-	cl_command_queue queue1;
-	create_context_on("Advanced Micro Devices","AMD",0,&ctx1,&queue1,0);
-
 	cl_int status;
 	cl_mem buf_a = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 
 	sizeof(float) *N *N* 2 , 0, &status);
