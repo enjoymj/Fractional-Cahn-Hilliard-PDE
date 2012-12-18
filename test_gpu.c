@@ -1145,7 +1145,7 @@ void main(int argc, char** argv)
 	float kfact2 = 1/1.3;
 	float Nfact = 0.7;
 	float CGfact = 0.7;
-
+	double elapsed ;
 
 	CALL_CL_GUARDED(clFinish, (queue));
 	get_timestamp(&time1);
@@ -1157,8 +1157,8 @@ void main(int argc, char** argv)
 	//fft2D(buf_a,buf_b,buf_c,buf_d,N,fft_init,fft1D,mat_trans,queue, 1);
 	//fft2D_new(buf_a,buf_b,buf_c,buf_d,N,fft_init,fft_interm,fft1D,mat_trans,queue, 1);
 	//fft2D_big(buf_a,buf_b,buf_c,buf_d,N,fft_big,fft_clean,mat_trans,queue,direction);
-	fft2D_big_new(buf_a,buf_b,buf_c,buf_d,N,fft_2D,fft_2D_clean,
-			mat_trans,mat_trans_3D,queue,direction);
+	//fft2D_big_new(buf_a,buf_b,buf_c,buf_d,N,fft_2D,fft_2D_clean,
+			//mat_trans,mat_trans_3D,queue,direction);
 	//fft_w(buf_a,buf_b,buf_c,buf_d,buf_e,N,0.1,0,1,fft_init_w,fft_init,fft1D,mat_trans,queue);
 #if 0
 	frhs(buf_a,buf_b,buf_c,buf_d,buf_e,&param,fft1D_init,fft1D,mat_trans,
@@ -1183,15 +1183,59 @@ void main(int argc, char** argv)
 	//mat__trans(buf_a,buf_b,N,mat_trans,queue,4,0.1,0,1);
 	//double elapsed = reduction_mult(buf_a, buf_b,buf_c,N*N,reduct_mul,reduct,queue);
 	CALL_CL_GUARDED(clFinish, (queue));
-	//printf("come on %f \n", E1);
+
+	
+	get_timestamp(&time1);
+	fft2D(buf_a,buf_b,buf_c,buf_d,N,fft_init,fft1D,mat_trans,queue, 1);
 	CALL_CL_GUARDED(clFinish, (queue));
 	get_timestamp(&time2);
-	double elapsed = timestamp_diff_in_seconds(time1,time2);
-	printf("on gpu %f s\n", elapsed);
+	elapsed = timestamp_diff_in_seconds(time1,time2);
+	printf("Navie 2D FFT of size %d * %d matrix  on gpu takes %f s\n", N,N,elapsed);
 	printf("achieve %f GFLOPS \n",6*8*N*N*k/elapsed*1e-9);
-	printf("data access from global achieve %f GB/s\n",sizeof(float)*2*16*N*N/elapsed*1e-9);
+	printf("---------------------------------------------\n");
+	//printf("data access from global achieve %f GB/s\n",sizeof(float)*2*16*N*N/elapsed*1e-9);
 	CALL_CL_GUARDED(clFinish, (queue));
 	get_timestamp(&time1);
+	fft2D_new(buf_a,buf_b,buf_c,buf_d,N,fft_init,fft_interm,fft1D,mat_trans,queue, 1);
+	CALL_CL_GUARDED(clFinish, (queue));
+	get_timestamp(&time2);
+	elapsed = timestamp_diff_in_seconds(time1,time2);
+	printf("local data exchange 2D FFT of size %d * %d matrix  on gpu takes %f s\n", N,N,elapsed);
+	printf("achieve %f GFLOPS \n",6*8*N*N*k/elapsed*1e-9);
+	printf("---------------------------------------------\n");
+
+
+	CALL_CL_GUARDED(clFinish, (queue));
+	get_timestamp(&time1);
+	fft2D_big(buf_a,buf_b,buf_c,buf_d,N,fft_big,fft_clean,mat_trans,queue,direction);
+	CALL_CL_GUARDED(clFinish, (queue));
+	get_timestamp(&time2);
+	elapsed = timestamp_diff_in_seconds(time1,time2);
+	printf("Hierarchy 2D FFT of size %d * %d matrix  on gpu takes %f s\n", N,N,elapsed);
+	printf("achieve %f GFLOPS \n",6*8*N*N*k/elapsed*1e-9);
+	printf("---------------------------------------------\n");
+
+
+	CALL_CL_GUARDED(clFinish, (queue));
+	get_timestamp(&time1);
+	fft2D_big_new(buf_a,buf_b,buf_c,buf_d,N,fft_2D,fft_2D_clean,
+			mat_trans,mat_trans_3D,queue,direction);
+	CALL_CL_GUARDED(clFinish, (queue));
+	get_timestamp(&time2);
+	elapsed = timestamp_diff_in_seconds(time1,time2);
+	printf("Using 2D kernel 2D FFT of size %d * %d matrix  on gpu takes %f s\n", N,N,elapsed);
+	printf("achieve %f GFLOPS \n",6*8*N*N*k/elapsed*1e-9);
+	printf("---------------------------------------------\n");
+
+
+
+	get_timestamp(&time1);
+
+
+
+
+
+
 	direction = -1;
 	//fft_1D(buf_b,buf_c,buf_d,N,fft_init, fft1D,queue,direction,0);
 	fft2D(buf_b,buf_c,buf_d,buf_e,N,fft_init,fft1D,mat_trans,queue, direction);
@@ -1214,7 +1258,7 @@ void main(int argc, char** argv)
 	
 
 	#endif
-	#if 1
+	#if 0
 	CALL_CL_GUARDED(clFinish, (queue));
 	CALL_CL_GUARDED(clEnqueueReadBuffer, (
         	queue, buf_c, /*blocking*/ CL_TRUE, /*offset*/ 0,
