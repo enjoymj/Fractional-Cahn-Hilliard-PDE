@@ -24,8 +24,8 @@
 
 void mat__trans(cl_mem a, cl_mem b, int N, cl_kernel mat_trans, cl_command_queue queue,int option, float epsilon,float k,float s)
 {
-
-	SET_7_KERNEL_ARGS(mat_trans, a, b, N, option,epsilon,k,s);
+	cl_long offset = 0;
+	SET_8_KERNEL_ARGS(mat_trans, a, b, N, option,epsilon,k,s,offset);
 
 	size_t ldim[] = { 16, 16 };
 	size_t gdim[] = { N, N };
@@ -84,7 +84,7 @@ void fft_1D(cl_mem a,cl_mem b,cl_mem c, int N, cl_kernel init, cl_kernel knl,cl_
 	
 }
 
-void fft_1D_big(cl_mem a,cl_mem b,cl_mem c, int N, cl_kernel init_big, cl_kernel clean,cl_command_queue queue,int direction,int offset_line)
+void fft_1D_big(cl_mem a,cl_mem b,cl_mem c, int N, cl_kernel init_big, cl_kernel clean,cl_kernel mat_trans,cl_command_queue queue,int direction,int offset_line)
 {
 	//handle complex-to-complex fft, accutal size = 2 * N
 
@@ -107,15 +107,44 @@ void fft_1D_big(cl_mem a,cl_mem b,cl_mem c, int N, cl_kernel init_big, cl_kernel
 	else
 	if( N == 256 || N == 1024)
 	{
-
-		SET_7_KERNEL_ARGS(clean, b, b, N, Ns,direction,offset_line,y);
+		cl_long offset = offset_line * N;
+		SET_7_KERNEL_ARGS(clean, b, c, N, Ns,direction,offset_line,y);
 		ldim[0] =4;
 
 		CALL_CL_GUARDED(clEnqueueNDRangeKernel,
 			(queue, clean,
 			 1, NULL, gdim, ldim,
 			0, NULL, NULL));
-			
+		if(N == 1024)
+		{
+			int option =0;
+			float k =0;
+			int n = 16;			
+			SET_8_KERNEL_ARGS(mat_trans, c, b, n, option,k,k,k,offset);
+
+			size_t ldim[] = { 16, 16 };
+			size_t gdim[] = { 16, 64 };
+			CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, mat_trans,
+				2, NULL, gdim, ldim,
+				0, NULL, NULL));
+
+		}
+		else if(N ==256)
+		{
+			int option =0;
+			float k =0;
+			int n = 4;			
+			SET_8_KERNEL_ARGS(mat_trans, c, b, n, option,k,k,k,offset);
+
+			size_t ldim[] = { 4, 4 };
+			size_t gdim[] = { 4, 64 };
+			CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, mat_trans,
+				2, NULL, gdim, ldim,
+				0, NULL, NULL));
+
+		}	
 		
 	}
 
@@ -128,7 +157,7 @@ void fft_1D_big(cl_mem a,cl_mem b,cl_mem c, int N, cl_kernel init_big, cl_kernel
 }
 
 
-void fft_1D_new(cl_mem a,cl_mem b,cl_mem c, int N, cl_kernel init, cl_kernel interm, cl_kernel knl,cl_command_queue queue,int direction,int offset_line)
+void fft_1D_new(cl_mem a,cl_mem b,cl_mem c, int N, cl_kernel init, cl_kernel interm, cl_kernel knl, cl_command_queue queue,int direction,int offset_line)
 {
 	//handle complex-to-complex fft, accutal size = 2 * N
 
@@ -275,7 +304,7 @@ void fft2D_new(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init,cl_k
 			 1, NULL, gdim, ldim,
 			0, NULL, NULL));
 	}
-
+#if 1
 	for(int blk=0; blk<stride;blk++)
 		for(int j= 0;j<N/stride;j++)
 		{
@@ -331,7 +360,7 @@ void fft2D_new(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init,cl_k
 	if(N >=64) 
 
 		
-
+#endif
 		for(Ns=64; Ns<N; Ns<<=2)
 		{
 
@@ -411,7 +440,7 @@ void fft2D_new(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init,cl_k
 			 1, NULL, gdim, ldim,
 			0, NULL, NULL));
 	}
-
+#if 1
 	for(int blk=0; blk<stride;blk++)
 		for(int j= 0;j<N/stride;j++)
 		{
@@ -466,7 +495,7 @@ void fft2D_new(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init,cl_k
 
 	if(N >=64) 
 
-		
+#endif		
 
 		for(Ns=64; Ns<N; Ns<<=2)
 		{
@@ -506,8 +535,427 @@ void fft2D_new(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init,cl_k
 		mat__trans(b,c,N,mat_trans,queue,-1,1,1,1);
 	
 }
+#if 0
+void fft2D_big(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init_big,
+		cl_kernel clean,cl_kernel mat_trans, cl_command_queue queue,int direction)
+{
+	
+
+	for(int j= 0;j<N;j++)
+	{
+		
+		fft_1D_big(a, b,c,N, init_big, clean,mat_trans,queue,direction,j);
+	}
+	//CALL_CL_GUARDED(clFinish, (queue));
+	//printf("1D fine \n");
+
+	mat__trans(b,c,N,mat_trans,queue,0,1,1,1);
+
+	//CALL_CL_GUARDED(clFinish, (queue));
+	for(int j= 0;j<N;j++)
+	{
+		//fft_1D(c,b,d,N,fft_init,fft1D,queue,direction,j);
+		fft_1D_big(c, b,d,N, init_big, clean,mat_trans,queue,direction,j);
+	}
+	//CALL_CL_GUARDED(clFinish, (queue));
+	if(direction == 1)
+		mat__trans(b,c,N,mat_trans,queue,0,1,1,1);
+	else 
+		mat__trans(b,c,N,mat_trans,queue,-1,1,1,1);
+	
+}
+#endif
+
+#if 1
+
+void fft2D_big(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init_big,
+		cl_kernel clean,cl_kernel mat_trans, cl_command_queue queue,int direction)
+{
+	
+
+	for(int j= 0;j<N;j++)
+	{
+		int offset_line = j;
+			int Ns = 1;
+			int y =0;
+		SET_7_KERNEL_ARGS(init_big, a, b, N, Ns,direction,offset_line,y);
 
 
+		size_t ldim[] = { 16 };
+		size_t gdim[] = { N/4 };
+
+		CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, init_big,
+				 1, NULL, gdim, ldim,
+				0, NULL, NULL));
+	}
+		
+		if(N !=64)
+
+		if(N == 1024)
+		{
+		for(int j= 0;j<N;j++)
+		{
+			int offset_line = j;			
+			int Ns =1;
+			int y =0;			
+			cl_long offset = offset_line * N;
+			SET_7_KERNEL_ARGS(clean, b, c, N, Ns,direction,offset_line,y);
+			size_t ldim[]={ 4 };
+			size_t gdim[] ={ N/4 };
+			CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, clean,
+				 1, NULL, gdim, ldim,
+				0, NULL, NULL));
+
+		
+
+			int option =0;
+			float k =0;
+			int n = 16;			
+			//cl_long offset = 0;			
+			SET_8_KERNEL_ARGS(mat_trans, c, b, n, option,k,k,k,offset);
+
+				size_t ldim2[] = { 16, 16 };
+				size_t gdim2[] = { 16, 64 };
+
+			CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, mat_trans,
+				2, NULL, gdim2, ldim2,
+				0, NULL, NULL));
+		}
+		}
+		else if(N ==256)
+		{
+			for(int j= 0;j<N;j++)
+		{
+			int offset_line = j;	
+			int Ns =1;
+			int y =0;			
+			cl_long offset = offset_line * N;
+			SET_7_KERNEL_ARGS(clean, b, c, N, Ns,direction,offset_line,y);
+			size_t ldim[] ={4};
+			size_t gdim[] ={N/4};
+
+			CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, clean,
+				 1, NULL, gdim, ldim,
+				0, NULL, NULL));				
+			int option =0;
+			float k =0;
+			int n = 4;			
+			SET_8_KERNEL_ARGS(mat_trans, c, b, n, option,k,k,k,offset);
+
+				size_t ldim2[] = { 4, 4 };
+				size_t gdim2[] = { 4, 64 };
+
+			CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, mat_trans,
+				2, NULL, gdim2, ldim2,
+				0, NULL, NULL));
+
+		}	
+		}
+		
+		else
+		{
+			printf("FFT not implemented for this size!!!\n");
+
+			return;
+		}	
+	
+	//CALL_CL_GUARDED(clFinish, (queue));
+	//printf("1D fine \n");
+
+	mat__trans(b,c,N,mat_trans,queue,0,1,1,1);
+
+	//CALL_CL_GUARDED(clFinish, (queue));
+/*	for(int j= 0;j<N;j++)
+	{
+		//fft_1D(c,b,d,N,fft_init,fft1D,queue,direction,j);
+		fft_1D_big(c, b,d,N, init_big, clean,mat_trans,queue,direction,j);
+	}
+*/
+for(int j= 0;j<N;j++)
+	{
+		int offset_line = j;
+			int Ns = 1;
+			int y =0;
+		SET_7_KERNEL_ARGS(init_big, c, b, N, Ns,direction,offset_line,y);
+
+
+		size_t ldim[] = { 16 };
+		size_t gdim[] = { N/4 };
+
+		CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, init_big,
+				 1, NULL, gdim, ldim,
+				0, NULL, NULL));
+}
+		
+	if(N !=64){
+for(int j= 0;j<N;j++)
+	{
+		int offset_line = j;
+		if( N == 256 || N == 1024)
+		{
+			int Ns =1;
+			int y = 0;			
+			cl_long offset = offset_line * N;
+			SET_7_KERNEL_ARGS(clean, b, d, N, Ns,direction,offset_line,y);
+			size_t ldim[] = { 4 };
+			size_t gdim[] = { N/4 };
+
+			CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, clean,
+				 1, NULL, gdim, ldim,
+				0, NULL, NULL));
+			if(N == 1024)
+			{
+				int option =0;
+				float k =0;
+				int n = 16;			
+				SET_8_KERNEL_ARGS(mat_trans, d, b, n, option,k,k,k,offset);
+
+				size_t ldim[] = { 16, 16 };
+				size_t gdim[] = { 16, 64 };
+				CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+					(queue, mat_trans,
+					2, NULL, gdim, ldim,
+					0, NULL, NULL));
+
+			}
+			else if(N ==256)
+			{
+				int option =0;
+				float k =0;
+				int n = 4;			
+				SET_8_KERNEL_ARGS(mat_trans, d, b, n, option,k,k,k,offset);
+
+				size_t ldim[] = { 4, 4 };
+				size_t gdim[] = { 4, 64 };
+				CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+					(queue, mat_trans,
+					2, NULL, gdim, ldim,
+					0, NULL, NULL));
+
+			}	
+		
+		}
+
+		else
+		{
+			printf("FFT not implemented for this size!!!\n");
+
+			return;
+		}	
+	}
+}
+	//CALL_CL_GUARDED(clFinish, (queue));
+	if(direction == 1)
+		mat__trans(b,c,N,mat_trans,queue,0,1,1,1);
+	else 
+		mat__trans(b,c,N,mat_trans,queue,-1,1,1,1);
+	
+}
+
+#endif
+#if 1
+void fft2D_big_new(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init_big,
+		cl_kernel clean,cl_kernel mat_trans, cl_kernel mat_trans_3D, cl_command_queue queue,int direction)
+{
+	
+
+
+		int offset_line = 0;
+			int Ns = 1;
+			int y =0;
+		SET_7_KERNEL_ARGS(init_big, a, b, N, Ns,direction,offset_line,y);
+
+
+		size_t ldim[] = { 16 };
+		size_t gdim[] = { N*N/4 };
+
+		CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, init_big,
+				 1, NULL, gdim, ldim,
+				0, NULL, NULL));
+		
+	if(N!=64)
+		if(N == 1024)
+		{
+		
+			int Ns =1;
+			int y =0;			
+			//cl_long offset = offset_line * N;
+			SET_7_KERNEL_ARGS(clean, b, c, N, Ns,direction,offset_line,y);
+			size_t ldim[]={ 4 };
+			size_t gdim[] ={ N*N/4 };
+			CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, clean,
+				 1, NULL, gdim, ldim,
+				0, NULL, NULL));
+
+		
+
+			
+			int option =0;
+			float k =0;
+			int n = 16;			
+						
+			SET_8_KERNEL_ARGS(mat_trans_3D, c, b, n, option,k,k,k,N);
+
+				size_t ldim2[] = { 16, 16 ,1};
+				size_t gdim2[] = { 16, 64 ,N};
+
+			CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, mat_trans_3D,
+				3, NULL, gdim2, ldim2,
+				0, NULL, NULL));
+
+		}
+		else if(N ==256)
+		{
+
+			int Ns =1;
+			int y =0;			
+			offset_line =0;
+			SET_7_KERNEL_ARGS(clean, b, c, N, Ns,direction,offset_line,y);
+			size_t ldim[] ={4};
+			size_t gdim[] ={N*N/4};
+
+			CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, clean,
+				 1, NULL, gdim, ldim,
+				0, NULL, NULL));
+
+
+							
+			int option =0;
+			float k =0;
+			int n = 4;
+						
+			SET_8_KERNEL_ARGS(mat_trans_3D, c, b, n, option,k,k,k,N);
+
+				size_t ldim2[] = { 4, 4 ,1};
+				size_t gdim2[] = { 4, 64, N };
+
+			CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, mat_trans_3D,
+				3, NULL, gdim2, ldim2,
+				0, NULL, NULL));
+
+			
+		}
+		
+		else
+		{
+			printf("FFT not implemented for this size!!!\n");
+
+			return;
+		}	
+	
+	//CALL_CL_GUARDED(clFinish, (queue));
+	//printf("1D fine \n");
+
+	mat__trans(b,c,N,mat_trans,queue,0,1,1,1);
+
+	//CALL_CL_GUARDED(clFinish, (queue));
+/*	for(int j= 0;j<N;j++)
+	{
+		//fft_1D(c,b,d,N,fft_init,fft1D,queue,direction,j);
+		fft_1D_big(c, b,d,N, init_big, clean,mat_trans,queue,direction,j);
+	}
+*/
+
+		Ns =1;
+		SET_7_KERNEL_ARGS(init_big, c, b, N, Ns,direction,offset_line,y);
+
+
+
+		CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, init_big,
+				 1, NULL, gdim, ldim,
+				0, NULL, NULL));
+
+		
+if (N !=64 )
+		
+
+		if( N == 256 || N == 1024)
+		{
+			int Ns =1;
+			int y = 0;			
+			int offset_line = 0;
+			SET_7_KERNEL_ARGS(clean, b, d, N, Ns,direction,offset_line,y);
+			size_t ldim[] = { 4 };
+			size_t gdim[] = { N*N/4 };
+
+			CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, clean,
+				 1, NULL, gdim, ldim,
+				0, NULL, NULL));
+
+			if(N == 1024)
+			{
+			
+			int option =0;
+			float k =0;
+			int n = 16;			
+						
+			SET_8_KERNEL_ARGS(mat_trans_3D, d, b, n, option,k,k,k,N);
+
+				size_t ldim2[] = { 16, 16 ,1};
+				size_t gdim2[] = { 16, 64 ,N};
+
+			CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, mat_trans_3D,
+				3, NULL, gdim2, ldim2,
+				0, NULL, NULL));
+			
+			}
+			else if(N ==256)
+			{
+		
+			int option =0;
+			float k =0;
+			int n = 4;
+						
+			SET_8_KERNEL_ARGS(mat_trans_3D, d, b, n, option,k,k,k,N);
+
+				size_t ldim2[] = { 4, 4 ,1};
+				size_t gdim2[] = { 4, 64, N };
+
+			CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, mat_trans_3D,
+				3, NULL, gdim2, ldim2,
+				0, NULL, NULL));
+
+			
+			}	
+		
+		}
+
+		else
+		{
+			printf("FFT not implemented for this size!!!\n");
+
+			return;
+		}	
+	
+
+	//CALL_CL_GUARDED(clFinish, (queue));
+	if(direction == 1)
+		mat__trans(b,c,N,mat_trans,queue,0,1,1,1);
+	else 
+		mat__trans(b,c,N,mat_trans,queue,-1,1,1,1);
+	
+}
+
+
+
+
+#endif
 void main(int argc, char** argv)
 {
 	int k = atoi(argv[1]);	
@@ -653,6 +1101,18 @@ void main(int argc, char** argv)
 	cl_kernel fft_clean = kernel_from_string(ctx, knl_text, "fft1D_clean", NULL);
 	free(knl_text);
 
+	knl_text = read_file("radix-4-2D.cl");
+	cl_kernel fft_2D = kernel_from_string(ctx, knl_text, "fft2D_big", NULL);
+	free(knl_text);
+
+	knl_text = read_file("radix-4-2D-clean.cl");
+	cl_kernel fft_2D_clean = kernel_from_string(ctx, knl_text, "fft2D_clean", NULL);
+	free(knl_text);
+
+
+	knl_text = read_file("mat-trans-3D.cl");
+	cl_kernel mat_trans_3D = kernel_from_string(ctx, knl_text, "transpose_3D", NULL);
+	free(knl_text);
 	int Ns =1 ;
 	int direction = 1;
 	timestamp_type time1, time2;
@@ -690,12 +1150,15 @@ void main(int argc, char** argv)
 	CALL_CL_GUARDED(clFinish, (queue));
 	get_timestamp(&time1);
 
-
-	//fft_1D_big(buf_a,buf_b,buf_c,N,fft_big,fft_clean,queue,direction,0);
+//for(int s=0;s<100;s++)
+	//fft_1D_big(buf_a,buf_b,buf_c,N,fft_big,fft_clean,mat_trans,queue,direction,0);
 	//fft_1D_new(buf_a,buf_b,buf_c,N,fft_init,fft_interm, fft1D,queue,direction,0);
 	//fft_1D(buf_a,buf_b,buf_c,N,fft_init, fft1D,queue,direction,0);
 	//fft2D(buf_a,buf_b,buf_c,buf_d,N,fft_init,fft1D,mat_trans,queue, 1);
-	fft2D_new(buf_a,buf_b,buf_c,buf_d,N,fft_init,fft_interm,fft1D,mat_trans,queue, 1);
+	//fft2D_new(buf_a,buf_b,buf_c,buf_d,N,fft_init,fft_interm,fft1D,mat_trans,queue, 1);
+	//fft2D_big(buf_a,buf_b,buf_c,buf_d,N,fft_big,fft_clean,mat_trans,queue,direction);
+	fft2D_big_new(buf_a,buf_b,buf_c,buf_d,N,fft_2D,fft_2D_clean,
+			mat_trans,mat_trans_3D,queue,direction);
 	//fft_w(buf_a,buf_b,buf_c,buf_d,buf_e,N,0.1,0,1,fft_init_w,fft_init,fft1D,mat_trans,queue);
 #if 0
 	frhs(buf_a,buf_b,buf_c,buf_d,buf_e,&param,fft1D_init,fft1D,mat_trans,
@@ -725,13 +1188,15 @@ void main(int argc, char** argv)
 	get_timestamp(&time2);
 	double elapsed = timestamp_diff_in_seconds(time1,time2);
 	printf("on gpu %f s\n", elapsed);
-	printf("achieve %f GFLOPS \n",8*N*N*k/elapsed*1e-9);
+	printf("achieve %f GFLOPS \n",6*8*N*N*k/elapsed*1e-9);
+	printf("data access from global achieve %f GB/s\n",sizeof(float)*2*16*N*N/elapsed*1e-9);
 	CALL_CL_GUARDED(clFinish, (queue));
 	get_timestamp(&time1);
 	direction = -1;
-	//fft_1D(buf_b,buf_c,buf_d,N,fft1D_init, fft1D,queue,direction,0);
-	//fft2D(buf_d,buf_c,buf_b,buf_e,N,fft_init,fft1D,mat_trans,queue, direction);
-	fft2D_new(buf_b,buf_c,buf_e,buf_d,N,fft_init,fft_interm,fft1D,mat_trans,queue, -1);
+	//fft_1D(buf_b,buf_c,buf_d,N,fft_init, fft1D,queue,direction,0);
+	fft2D(buf_b,buf_c,buf_d,buf_e,N,fft_init,fft1D,mat_trans,queue, direction);
+	//fft2D_new(buf_b,buf_c,buf_e,buf_d,N,fft_init,fft_interm,fft1D,mat_trans,queue, -1);
+	//fft2D_big(buf_b,buf_c,buf_d,buf_e,N,fft_big,fft_clean,mat_trans,queue,direction);
 	CALL_CL_GUARDED(clFinish, (queue));
 	get_timestamp(&time2);
 	elapsed = timestamp_diff_in_seconds(time1,time2);
