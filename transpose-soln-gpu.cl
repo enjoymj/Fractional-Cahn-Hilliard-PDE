@@ -20,6 +20,7 @@ __kernel void transpose(
   long jl = get_local_id(1);
   int ilsz = get_local_size(0);
   int jlsz = get_local_size(1);
+  int nn=get_global_size(1);
   long i = ig * ilsz + il;
   long j = jg * ilsz + jl;
   int N =n;
@@ -136,6 +137,6 @@ __kernel void transpose(
 	l_a[il][jl] = pr;
   }
   barrier(CLK_LOCAL_MEM_FENCE);
-  b[offset + jg*jlsz + n*ig*ilsz + il + jl*n ] = l_a[jl][il] ;
-
+  //b[offset + jg*jlsz + n*ig*ilsz + il + jl*n ] = l_a[jl][il] ;
+  b[j+nn*i ] = l_a[il][jl] ;
 }
