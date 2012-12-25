@@ -105,12 +105,12 @@ int main(int argc, char** argv)
 	srand(1);
 	for(int i =0;i<N*N;i++)
 	{	
-		uu[2*i]=sin(i%N *2 *PI);
+		uu[2*i]=sin(i*M_PI/N*2);
 		//uu[2*i] =0.5;
 		//printf("%f\n",uu[2*i]);
 		uu[2*i+1] =0 ;
 	}
-	printf("Initialized data \n");
+	printf("Initialized data %f\n",uu[0]);
   	//float *u_hat = (float *) malloc(sizeof(float) * N * N * 2);
   	//if (!u_hat) { perror("alloc u_hat"); abort(); }
 	//float *temp = (float *) malloc(sizeof(float) * N * N * 2);
@@ -191,25 +191,25 @@ int main(int argc, char** argv)
 	cl_kernel vec_add = kernel_from_string(ctx, knl_text, "sum", NULL);
 	free(knl_text);
 
-	knl_text = read_file("mat_etr_mul.cl");
-	cl_kernel mat_etr_mul = kernel_from_string(ctx, knl_text, "mult", NULL);
+	knl_text = read_file("radix-4-2D.cl");
+	cl_kernel fft_2D = kernel_from_string(ctx, knl_text, "fft2D_big", NULL);
+	free(knl_text);
+
+	knl_text = read_file("radix-4-2D-clean.cl");
+	cl_kernel fft_2D_clean = kernel_from_string(ctx, knl_text, "fft2D_clean", NULL);
 	free(knl_text);
 
 
-	knl_text = read_file("radix-4-float.cl");
-	cl_kernel fft1D = kernel_from_string(ctx, knl_text, "fft1D", NULL);
-	free(knl_text);
-
-	knl_text = read_file("radix-4-init.cl");
-	cl_kernel fft_init = kernel_from_string(ctx, knl_text, "fft1D_init", NULL);
+	knl_text = read_file("mat-trans-3D.cl");
+	cl_kernel mat_trans_3D = kernel_from_string(ctx, knl_text, "transpose_3D", NULL);
 	free(knl_text);
 	
 	knl_text = read_file("transpose-soln-gpu.cl");
 	cl_kernel mat_trans = kernel_from_string(ctx, knl_text, "transpose", NULL);
 	free(knl_text);
 
-	knl_text = read_file("radix-4-modi.cl");
-	cl_kernel fft_init_w = kernel_from_string(ctx, knl_text, "fft1D_init", NULL);
+	knl_text = read_file("radix-4-2D-modi.cl");
+	cl_kernel fft_init_w = kernel_from_string(ctx, knl_text, "fft2D_big", NULL);
 	free(knl_text);
 
 	knl_text = read_file("vec_zero.cl");
@@ -250,7 +250,7 @@ int main(int argc, char** argv)
 	//frhs(u,fu0,temp,temp2,temp3,&param,&knl,&queue);
 
 	CALL_CL_GUARDED(clFinish, (queue));
-	frhs(u,fu0,temp,temp2,temp3,&param,fft_init,fft1D,mat_trans,
+	frhs(u,fu0,temp,temp2,temp3,&param,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,
 		 vec_add, queue);
 
 
@@ -269,7 +269,9 @@ int main(int argc, char** argv)
 	#endif
 	
 	//printf("frhs done\n");
-	//E0 = energy
+	float E0 = energy(u, temp9, temp4,temp5, temp6,temp7,0, 
+		&param, fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,reduct_eng,
+		reduct,queue); 
 	float kk = startk;
 	bool epic_fail = false;
 	bool fail = false;
@@ -278,20 +280,20 @@ int main(int argc, char** argv)
 	float Xi = 0;
 	//float * temp_ptr = NULL;
 	float kknew;
-	float E0= 1;
+	
 	float E1;
 	while(epic_fail == false && tt < finalT)
 	{
 		//chstep(u,fu0,u1,2*N*N,&fail,kK,&param,&knl,&queue);
-
+		CALL_CL_GUARDED(clFinish, (queue));
 		printf("Next time stepping\n");
 		chstep(u, fu0, u1, rhs, fu1, temp, temp2,temp3,
 			temp4,temp5, temp6,temp7,temp8,temp9,
 			N, &fail, kk, &param, 
-			fft_init,fft1D, fft_init_w,vec_add, 
-			vec_zero,mat_trans,reduct,reduct_mul,reduct_init,resid,resid_init,queue);
-
-#if 0 
+			fft_2D,fft_2D_clean, fft_init_w,vec_add, 
+			vec_zero,mat_trans,mat_trans_3D,reduct,reduct_mul,reduct_init,resid,resid_init,queue);
+CALL_CL_GUARDED(clFinish, (queue));
+#if 1 
 	CALL_CL_GUARDED(clFinish, (queue));
 	CALL_CL_GUARDED(clEnqueueReadBuffer, (
         	queue, u1, /*blocking*/ CL_TRUE, /*offset*/ 0,
@@ -326,8 +328,9 @@ int main(int argc, char** argv)
 
 		if(fail == false)
 		{
-			frhs(u1,fu1,temp,temp2,temp3,&param,fft_init,fft1D,mat_trans,
-		 vec_add, queue);
+			CALL_CL_GUARDED(clFinish, (queue));
+			frhs(u1,fu1,temp,temp2,temp3,&param,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,
+			 vec_add, queue);
 
 
 		#if 0
@@ -347,11 +350,12 @@ int main(int argc, char** argv)
 
 
 			//E1 = energy(u1);
-			//E1 = energy(u1, temp9, temp4,temp5, temp6,temp7,kk, 
-				//&param, fft_init,fft1D,mat_trans,reduct_eng,
-				//reduct,queue); 
-			//CALL_CL_GUARDED(clFinish, (queue));
-			E1 =0;
+			E1 = energy(u1, temp9, temp4,temp5, temp6,temp7,kk, 
+				&param, fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,reduct_eng,
+				reduct,queue); 
+			CALL_CL_GUARDED(clFinish, (queue));
+			printf("Energy now %f!!!!!!!!!!!!!!!\n",E1);
+			//E1 =0;
 			if (E1 > E0 * (1 +sigma) )
 			{
 				printf("Energy increase, failing time step\n");
@@ -415,7 +419,10 @@ int main(int argc, char** argv)
 				kk = kk * ksafety * sqrt(sigma/Xi);
 		
 			if(kk < mink)
-				epic_fail == true;
+			{
+				epic_fail = true;
+				printf("epic fail!!!!!!\n");
+			}
 		}
 		else
 		{
@@ -439,7 +446,7 @@ int main(int argc, char** argv)
 			if((float)param.nloc/param.maxN > Nfact || (float)param.cgloc/param.maxCG>CGfact)
 				kknew = kk < kknew? kk : kknew;
 			kk = kknew;
-			//E0 =E1;
+			E0 =E1;
 		}
 
 				
@@ -480,8 +487,8 @@ int main(int argc, char** argv)
 	CALL_CL_GUARDED(clReleaseMemObject, (temp8));
 	CALL_CL_GUARDED(clReleaseMemObject, (temp9));
 	CALL_CL_GUARDED(clReleaseMemObject, (rhs));
-	CALL_CL_GUARDED(clReleaseKernel, (fft1D));
-	CALL_CL_GUARDED(clReleaseKernel, (fft_init));
+	CALL_CL_GUARDED(clReleaseKernel, (fft_2D));
+	CALL_CL_GUARDED(clReleaseKernel, (fft_2D_clean));
 	CALL_CL_GUARDED(clReleaseKernel, (fft_init_w));
 	CALL_CL_GUARDED(clReleaseKernel, (vec_add));
 	CALL_CL_GUARDED(clReleaseKernel, (vec_zero));
@@ -490,6 +497,7 @@ int main(int argc, char** argv)
 	CALL_CL_GUARDED(clReleaseKernel, (reduct_mul));
 	CALL_CL_GUARDED(clReleaseKernel, (reduct));
 	CALL_CL_GUARDED(clReleaseKernel, (mat_trans));
+	CALL_CL_GUARDED(clReleaseKernel, (mat_trans_3D));
 	CALL_CL_GUARDED(clReleaseCommandQueue, (queue));
 	CALL_CL_GUARDED(clReleaseContext, (ctx));
 
