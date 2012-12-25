@@ -8,15 +8,16 @@
 
 
 void chcg(float k,struct parameter * p_param,  cl_mem temp,cl_mem rhs, cl_mem temp2, bool *fail,
-		cl_mem temp3,cl_mem temp4,cl_mem temp5,cl_mem temp6,cl_mem temp7,cl_mem temp8,cl_mem temp9,cl_kernel fft_init,
-		cl_kernel fft1D, cl_kernel fft_init_w,cl_kernel vec_add, cl_kernel vec_zero,
-		cl_kernel mat_trans,cl_kernel reduct,cl_kernel reduct_init,
+		cl_mem temp3,cl_mem temp4,cl_mem temp5,cl_mem temp6,cl_mem temp7,cl_mem temp8,cl_mem temp9,cl_kernel fft_2D,
+		cl_kernel fft_2D_clean, cl_kernel fft_init_w,cl_kernel vec_add, cl_kernel vec_zero,
+		cl_kernel mat_trans,cl_kernel mat_trans_3D,cl_kernel reduct,cl_kernel reduct_init,
 		cl_kernel reduct_mul,cl_kernel resid, cl_kernel resid_init,cl_command_queue queue)
 {
 	* fail = false;
 	int N = p_param->N;
 	// fft2(rk)./q & rk =rhs 
-	fft_d_q(rhs,temp2,temp9,temp3,N,p_param->epsilon,k,p_param->s,fft_init,fft1D,mat_trans,queue);
+	fft_d_q(rhs,temp2,temp9,temp3,N,p_param->epsilon,k,
+		p_param->s,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,queue);
 	//CALL_CL_GUARDED(clFinish, (queue));
 	//printf("I am here!\n");
 	#if 0
@@ -32,13 +33,13 @@ void chcg(float k,struct parameter * p_param,  cl_mem temp,cl_mem rhs, cl_mem te
 	
 
 	#endif
-	fft2D(temp2,temp3,temp9,temp4,N,fft_init,fft1D,mat_trans,queue,-1);
+	fft2D(temp2,temp3,temp9,temp4,N,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D, queue,-1);
 //------------------------	
 //temp3 = zk temp =unew 
 //------------------------
 
 	// linvzk = real(ifft2(fft2(zk)./nlap_s2));  real part;
-	fft_d_nlaps2(temp3,temp2,temp9,temp4,N,p_param->epsilon,k,p_param->s,fft_init,fft1D,mat_trans,queue);
+	fft_d_nlaps2(temp3,temp2,temp9,temp4,N,p_param->epsilon,k,p_param->s,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,queue);
 	#if 0
 	float test;
 	CALL_CL_GUARDED(clFinish, (queue));
@@ -53,7 +54,7 @@ void chcg(float k,struct parameter * p_param,  cl_mem temp,cl_mem rhs, cl_mem te
 
 	#endif
 		
-	fft2D(temp2,temp4,temp9,temp5,N,fft_init,fft1D,mat_trans,queue,-1);
+	fft2D(temp2,temp4,temp9,temp5,N,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,queue,-1);
 	
 //-----------------------------
 //linvzk = temp4
@@ -114,14 +115,14 @@ void chcg(float k,struct parameter * p_param,  cl_mem temp,cl_mem rhs, cl_mem te
 		//printf("ipold = %f\n",ipnew);
 		//fft((3*u.^2 -1) .* pk).*nlap_s
 
-		fft_w(temp, temp5, temp7,temp4,N,p_param->epsilon,k,p_param->s,fft_init_w,fft_init,fft1D,mat_trans,queue);
+		fft_w(temp, temp5, temp7,temp4,N,p_param->epsilon,k,p_param->s,fft_2D,fft_init_w,fft_2D_clean,mat_trans,mat_trans_3D,queue);
 
 
 
 
 
 	
-		fft2D(temp4, temp6,temp9,temp3,N,fft_init,fft1D,mat_trans,queue,-1);
+		fft2D(temp4, temp6,temp9,temp3,N,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,queue,-1);
 
 	#if 0
 		float test;
@@ -142,14 +143,14 @@ void chcg(float k,struct parameter * p_param,  cl_mem temp,cl_mem rhs, cl_mem te
 		vec__add(temp5, temp6, temp4,1,k/p_param->epsilon,2*N*N,vec_add, queue);
 
     		//Apk2 = -alpha*k*epsilon*real(ifft2(fft2(pk).*sharmonic));
-		fft_shar(temp5, temp6,temp9,temp7,N, p_param->epsilon,k,p_param->s,fft_init,fft1D,mat_trans,queue);
-		fft2D(temp6, temp7,temp9,temp3,N,fft_init,fft1D,mat_trans,queue,-1);
+		fft_shar(temp5, temp6,temp9,temp7,N, p_param->epsilon,k,p_param->s,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,queue);
+		fft2D(temp6, temp7,temp9,temp3,N,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,queue,-1);
 		//temp4 = Apk 
 		vec__add(temp4, temp7, temp4, 1, -k*p_param->epsilon, 2*N*N,vec_add, queue);
 
 		//linvpk = real(ifft2(fft2(pk)./nlap_s2)); temp6 = linvpk
-		fft_d_nlaps2(temp5,temp7,temp9,temp3,N,p_param->epsilon,k,p_param->s,fft_init,fft1D,mat_trans,queue);
-		fft2D(temp7,temp6,temp9,temp3,N,fft_init,fft1D,mat_trans,queue,-1);
+		fft_d_nlaps2(temp5,temp7,temp9,temp3,N,p_param->epsilon,k,p_param->s,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,queue);
+		fft2D(temp7,temp6,temp9,temp3,N,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,queue,-1);
 
 		if( ipold > 1e-9) 
 			cgalpha = ipold / reduction_mult(temp6, temp4,temp9,N*N,reduct_mul,reduct,queue);
@@ -164,12 +165,12 @@ void chcg(float k,struct parameter * p_param,  cl_mem temp,cl_mem rhs, cl_mem te
 		vec__add(temp8 , temp4, temp8, 1, -cgalpha,2*N*N,vec_add,queue);
 
 		//temp3 = zk
-		fft_d_q(temp8,temp6,temp9,temp3,N,p_param->epsilon,k,p_param->s,fft_init,fft1D,mat_trans,queue);
-		fft2D(temp6,temp3,temp9,temp4,N,fft_init,fft1D,mat_trans,queue,-1);
+		fft_d_q(temp8,temp6,temp9,temp3,N,p_param->epsilon,k,p_param->s,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,queue);
+		fft2D(temp6,temp3,temp9,temp4,N,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,queue,-1);
 
 		//linvzk = real(ifft2(fft2(zk)./nlap_s2)); temp6 = linvzk
-		fft_d_nlaps2(temp3,temp7,temp9,temp4,N,p_param->epsilon,k,p_param->s,fft_init,fft1D,mat_trans,queue);
-		fft2D(temp7,temp6,temp9,temp4,N,fft_init,fft1D,mat_trans,queue,-1);
+		fft_d_nlaps2(temp3,temp7,temp9,temp4,N,p_param->epsilon,k,p_param->s,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,queue);
+		fft2D(temp7,temp6,temp9,temp4,N,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,queue,-1);
 		
 		ipnew = reduction_mult(temp8, temp6,temp9,N*N,reduct_mul,reduct,queue);
 		CALL_CL_GUARDED(clFinish, (queue));

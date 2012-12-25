@@ -10,8 +10,8 @@
 void chstep(cl_mem u, cl_mem fu0, cl_mem u1, cl_mem rhs, cl_mem fu1, cl_mem temp,  cl_mem temp2,cl_mem temp3,
 		cl_mem temp4,cl_mem temp5,cl_mem temp6,cl_mem temp7,cl_mem temp8,cl_mem temp9,
 		int N, bool * fail, float k, struct parameter* p_param, 
-		cl_kernel fft_init,cl_kernel fft1D, cl_kernel fft_inti_w,cl_kernel vec_add, 
-		cl_kernel vec_zero,cl_kernel mat_trans,cl_kernel reduct,cl_kernel reduct_mul, 
+		cl_kernel fft_2D,cl_kernel fft_2D_clean, cl_kernel fft_inti_w,cl_kernel vec_add, 
+		cl_kernel vec_zero,cl_kernel mat_trans,cl_kernel mat_trans_3D,cl_kernel reduct,cl_kernel reduct_mul, 
 		cl_kernel reduct_init,  cl_kernel resid, cl_kernel resid_init,cl_command_queue queue)
 {
 	
@@ -32,7 +32,7 @@ void chstep(cl_mem u, cl_mem fu0, cl_mem u1, cl_mem rhs, cl_mem fu1, cl_mem temp
 	
 
 	#endif
-	frhs(temp,temp2,temp3,temp4,temp9,p_param,fft_init,fft1D,mat_trans,
+	frhs(temp,temp2,temp3,temp4,temp9,p_param,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,
 		 vec_add, queue);
 
         vec__add(fu0,temp2,rhs,1,-1,2*N*N,vec_add,queue);
@@ -66,8 +66,9 @@ void chstep(cl_mem u, cl_mem fu0, cl_mem u1, cl_mem rhs, cl_mem fu1, cl_mem temp
         while( reside > p_param->Ntol && p_param->nloc < p_param->maxN && *fail == false)
 	{
 		chcg(k,p_param, temp, rhs,/*result*/  temp2, fail,
-			temp3,temp4,temp5,temp6,temp7,temp8,temp9,fft_init,
-			fft1D, fft_inti_w,vec_add,vec_zero,mat_trans,reduct,reduct_init,reduct_mul,resid,resid_init,queue);
+			temp3,temp4,temp5,temp6,temp7,temp8,temp9,fft_2D,
+			fft_2D_clean,fft_inti_w,vec_add,vec_zero,mat_trans,mat_trans_3D,
+			reduct,reduct_init,reduct_mul,resid,resid_init,queue);
 		
 
 
@@ -78,16 +79,22 @@ void chstep(cl_mem u, cl_mem fu0, cl_mem u1, cl_mem rhs, cl_mem fu1, cl_mem temp
 		vec__add(fu1,temp2,fu1,1,-1,2*N*N,vec_add,queue);
 		//printf("in cg loop!\n");
 
-	
-		//following equal to rhs = fnew - frhs(ustar+k*alpha*fnew,param,symbol);
+		if(k*residual(fu1,temp9,resid,resid_init,queue,N*N)>5)
+		{
+			*fail = true;
+			printf("wild Newton step!!\n");
+		}
+		else
+		{
+			//following equal to rhs = fnew - frhs(ustar+k*alpha*fnew,param,symbol);
+		
+			//should check for wild Newton step
+			vec__add(u, fu1, temp, 1, k , 2*N*N, vec_add, queue);
 
-		//should check for wild Newton step
-		vec__add(u, fu1, temp, 1, k , 2*N*N, vec_add, queue);
 
 
 
-
-		frhs(temp,temp2,temp3,temp4,temp9,p_param,fft_init,fft1D,mat_trans,
+		frhs(temp,temp2,temp3,temp4,temp9,p_param,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,
 		 vec_add, queue);
 
 		vec__add(fu1,temp2,rhs,1,-1,2*N*N,vec_add,queue);
@@ -109,7 +116,7 @@ void chstep(cl_mem u, cl_mem fu0, cl_mem u1, cl_mem rhs, cl_mem fu1, cl_mem temp
 		reside = residual(rhs,temp9,resid,resid_init,queue,N*N);
 //CALL_CL_GUARDED(clFinish, (queue));
 //printf("Chstep resid  = %f \n",reside);
-		
+		}
 	}
 	if (reside > p_param->Ntol)
 	{

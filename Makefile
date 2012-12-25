@@ -1,7 +1,12 @@
+EXECUTABLES = test ch2d
+
+all: $(EXECUTABLES)
+
 CL_INC = -I$(OPENCL_INC)
 CL_LIB = -L$(OPENCL_LIB)
 
 test: test_cluster.c cl-helper.c 
 	gcc $(CL_INC) $(CL_LIB) -std=gnu99 -D_XOPEN_SOURCE=500 -o$@ $^ -lOpenCL -lrt -lm
 
-
+ch2d: ch2d.c chcg.c chstep.c frhs.c reduction.c energy.c vec_add.c cl-helper.c fft.c
+	gcc $(CL_INC) $(CL_LIB) -std=gnu99 -D_XOPEN_SOURCE=500 -o$@ $^ -lOpenCL -lrt -lm
