@@ -19,7 +19,7 @@ void vec__add(float *a, float *b, float *c, float a_mult, float b_mult,
   CALL_CL_GUARDED(clSetKernelArg, (knl, 5, sizeof(n), &n)); 
 
 	size_t ldim[] = { 128 };
-	size_t gdim[] = { ((n + ldim[0] - 1)/ldim[0])*ldim[0] };
+	size_t gdim[] = { n/16 };
 	CALL_CL_GUARDED(clEnqueueNDRangeKernel,
 			(queue, knl,
 			/*dimensions*/ 1, NULL, gdim, ldim,

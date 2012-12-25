@@ -171,6 +171,7 @@ __kernel void fft1D_big(
 	s = sinpi(angle);
 	c = cospi(angle);
 	idxS = t;
+printf("angle= %f t = %d l_a[] = %f %f %f %f \n",angle,t,l_a[t].x,l_a[t+16].x,l_a[t+32].x,l_a[t+48].x);
 	v[0] = l_a[idxS];
 	v[1] = l_a[idxS+ 16];
 

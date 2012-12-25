@@ -7,11 +7,11 @@
 #include<stdlib.h>
 #include<math.h>
 
-#ifndef M_PI
-#define M_PI 3.14156265358979323846
+#ifndef PI
+#define PI 3.14156265358979323846
 #endif
 
-#include "ch.h"
+//#include "ch.h"
 
 
 #define Q 1
@@ -21,6 +21,28 @@
 #define X 5
 #define Y 6
 
+struct parameter
+{
+	float h;
+        int N;
+	float epsilon;
+	float s;	
+        //coutourv = linspace(-1,1,11);
+
+	// maximum total number of CG or fixed point interations per time step
+	int maxCG;
+
+	// maximum number of Newton steps per time step
+	int maxN;
+
+	float Ntol;
+	float cgtol;
+	//param.xx = xx;
+	//param.yy = yy;
+	int cgloc;
+	int nloc;
+
+};
 
 void mat__trans(cl_mem a, cl_mem b, int N, cl_kernel mat_trans, cl_command_queue queue,int option, float epsilon,float k,float s)
 {
@@ -237,7 +259,7 @@ void fft_1D_new(cl_mem a,cl_mem b,cl_mem c, int N, cl_kernel init, cl_kernel int
 	}
 	
 }
-
+#if 1
 void fft2D(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel fft_init,
 		cl_kernel fft1D,cl_kernel mat_trans, cl_command_queue queue,int direction)
 {
@@ -264,7 +286,7 @@ void fft2D(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel fft_init,
 		mat__trans(b,c,N,mat_trans,queue,-1,1,1,1);
 	
 }
-
+#endif
 void fft2D_new(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init,cl_kernel interm,
 		cl_kernel fft1D,cl_kernel mat_trans, cl_command_queue queue,int direction)
 {

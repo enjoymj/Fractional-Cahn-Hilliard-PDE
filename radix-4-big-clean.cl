@@ -60,7 +60,7 @@ inline void FFT4(float2 * v,int direction)
 }
 //Stockham radix-4 fft
 __kernel void fft1D_clean(
-    __global float2 *a,
+    __global const float2 *a,
     __global float2 *b, 
     int N,
     int Ns,
@@ -76,12 +76,16 @@ __kernel void fft1D_clean(
 	int idxS = gid*4;	
 	int offset =offset_line *N;
 
-	if(N/64 ==4)
+	if(N ==256)
 	{
 		v[0] = a[offset +idxS];
 		v[1] = a[offset +idxS+ 1];
 		v[2] = a[offset+ idxS + 2 ];
 		v[3] = a[offset +idxS + 3 ];
+
+		
+		//float angle = -(2.0*direction*gid)/N; 
+
 		FFT4(v,direction);
 		b[offset + idxS ] = v[0];
 		b[offset+ idxS+1] = v[1];
@@ -118,7 +122,7 @@ __kernel void fft1D_clean(
 
 
 	}
-	else if(N/64 ==16)
+	else if(N ==1024)
 	{
 		__local float2 l_a[16];		
 		int lid =get_local_id(0);
@@ -136,7 +140,7 @@ __kernel void fft1D_clean(
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		int mask = 3;
-		float angle = -2 *(lid & mask)/16 * direction;
+		float angle = -(2.0 *(lid & mask))/16 * direction;
 		float s = sinpi(angle);
 		float c = cospi(angle);
 		v[0] = l_a[lid];

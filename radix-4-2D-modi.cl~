@@ -1,5 +1,7 @@
 //#pragma OPENCL EXTENSION cl_amd_fp64 : enable
 
+#define TWO_PI 6.28318530718
+
 #ifndef M_PI
 #define M_PI 3.14156265358979323846
 #endif
@@ -59,9 +61,10 @@ inline void FFT4(float2 * v,int direction)
 	
 }
 //Stockham radix-4 fft for size of 64
-__kernel void fft1D_big(
-    __global float2 *a,
-    __global float2 *b, 
+__kernel void fft2D_big(
+    __global const float2 *a,
+    __global const float2 *b, 
+    __global float2 *m_c,
     int N,
     int Ns,
     int direction,
@@ -70,43 +73,43 @@ __kernel void fft1D_big(
 {
 	
 	__local float2 l_a[64];
+	__local float2 l_p[64];
 	int gid = get_global_id(0);
 	int t = get_local_id(0);
 	int grp = get_group_id(0);	
 	float2 v[4];
 	int idxS = t;
+	int l_grp = grp%(N/64);
+	offset_line = grp/(N/64);
 	int offset = offset_line * N;
 
 	//save to size of 64 local array;
-	l_a[t*4]=a[offset+t*4*N/64+grp];
-	l_a[t*4+1]=a[offset+t*4*N/64+N/64+grp];
-	l_a[t*4+2]=a[offset+t*4*N/64+2*N/64+grp];
-	l_a[t*4+3]=a[offset+t*4*N/64+3*N/64+grp];
-
+	l_a[t*4]=a[offset+t*4*N/64+l_grp];
+	l_a[t*4+1]=a[offset+t*4*N/64+N/64+l_grp];
+	l_a[t*4+2]=a[offset+t*4*N/64+2*N/64+l_grp];
+	l_a[t*4+3]=a[offset+t*4*N/64+3*N/64+l_grp];
+	l_p[t*4]=b[offset+t*4*N/64+l_grp];
+	l_p[t*4+1]=b[offset+t*4*N/64+N/64+l_grp];
+	l_p[t*4+2]=b[offset+t*4*N/64+2*N/64+l_grp];
+	l_p[t*4+3]=b[offset+t*4*N/64+3*N/64+l_grp];
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-	//printf("t = %d l_a[] = %f %f %f %f \n",t,l_a[t*4].x,l_a[t*4+1].x,l_a[t*4+2].x,l_a[t*4+3].x);
+
 
 	v[0] = l_a[idxS];
-
 	v[1] = l_a[idxS+ 16];
 	v[2] = l_a[idxS + 32];
 	v[3] = l_a[idxS + 48];
-	if(0 == option)
-	{1+1;}
-	else if(1 == option)
-	{
-		v[0].x = pow(v[0].x,3)- v[0].x;
+		v[0].x = 3*pow(v[0].x,2)- l_p[idxS].x;
 		//printf("%f!\n",v[0].x);
-		v[1].x = pow(v[1].x,3)- v[1].x;
-		v[2].x = pow(v[2].x,3)- v[2].x;
-		v[3].x = pow(v[3].x,3)- v[3].x;
-	}
+		v[1].x = 3*pow(v[1].x,2)- l_p[idxS+16].x;
+		v[2].x = 3*pow(v[2].x,2)- l_p[idxS+32].x;
+		v[3].x = 3*pow(v[3].x,2)- l_p[idxS+48].x;
 
 	FFT4(v,direction);
 	int idxD = t*4 ;
-	
-	barrier(CLK_LOCAL_MEM_FENCE);
+
+	//barrier(CLK_GLOBAL_MEM_FENCE);
 	l_a[idxD] = v[0];
 	l_a[idxD+1] = v[1];
 	l_a[idxD+2] = v[2];
@@ -116,7 +119,7 @@ __kernel void fft1D_big(
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
 	int mask = 3;
-	float angle = -(2.0 *(t & 3))/16 * direction;
+	float angle = -2 *(gid & 3)/16 * direction;
 	float s = sinpi(angle);
 	float c = cospi(angle);
 	idxS = t;
@@ -167,10 +170,11 @@ __kernel void fft1D_big(
 	//barrier(CLK_LOCAL_MEM_FENCE);
 	
 	 mask = 15;
-	angle = -(2.0 *(t & 15))/64 * direction;
+	angle = -2 *(gid & 15)/16 * direction;
 	s = sinpi(angle);
 	c = cospi(angle);
 	idxS = t;
+
 	v[0] = l_a[idxS];
 	v[1] = l_a[idxS+ 16];
 
@@ -200,7 +204,7 @@ __kernel void fft1D_big(
 	//v[3] = (float2) (x.x* (c*c*c -3*s*s*c)- x.y* (3 *s *c*c -s * s* s), x.x * (3 *s *c*c -s * s* s) + x.y * (c*c*c -3*s*s*c));
 	
 	//v[3] = (float2) (x.x* y.x- x.y* y.y, x.x * y.y + x.y * y.x);
-//printf("t = %d big  %f  %f %f %f\n",t,v[0].x,v[1].x,v[2].x,v[3].x);
+
 	FFT4(v,direction);
 
 
@@ -224,9 +228,8 @@ __kernel void fft1D_big(
 	
 	//barrier(CLK_GLOBAL_MEM_FENCE);
 //twiddle factor
-#if 1
-	float tw =-(2.0 *t*4*grp)/N*direction;
-	float inc = -(2.0*grp)/N*direction;
+	float tw =-2 *t*4*l_grp/N*direction;
+	float inc = -(2.0*l_grp)/N*direction;
 	s = sinpi(tw);
 	c=  cospi(tw);
 	v[0]=(float2)(v[0].x*c-v[0].y*s,v[0].x*s+v[0].y*c);
@@ -240,14 +243,14 @@ __kernel void fft1D_big(
 	c=  cospi(tw+3*inc);
 	v[3]=(float2)(v[3].x*c-v[3].y*s,v[3].x*s+v[3].y*c);
 
-#endif
 
-	//printf("t = %d v[0]=%f\n",t,v[0].x);
 
-	idxD = grp + t*4*N/64;
-	b[offset + idxD ] = v[0];
-	b[offset+ idxD + N/64] = v[1];
-	b[offset+ idxD + 2*N/64 ] = v[2];
-	b[offset + idxD + 3*N/64 ] = v[3];
+
+
+	idxD = l_grp + t*4*N/64;
+	m_c[offset + idxD ] = v[0];
+	m_c[offset+ idxD + N/64] = v[1];
+	m_c[offset+ idxD + 2*N/64 ] = v[2];
+	m_c[offset + idxD + 3*N/64 ] = v[3];
 	
 }

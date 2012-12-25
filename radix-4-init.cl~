@@ -109,7 +109,7 @@ __kernel void fft1D_init(
 
 	//barrier(CLK_GLOBAL_MEM_FENCE);
 
-	
+	printf("t = %d big  %f  %f %f %f\n",gid,v[0].x,v[1].x,v[2].x,v[3].x);
 	b[offset + idxD ] = v[0];
 	b[offset+ idxD +  Ns] = v[1];
 	b[offset+ idxD + 2 * Ns] = v[2];

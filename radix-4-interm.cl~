@@ -92,19 +92,14 @@ __kernel void fft1D(
 	x = v[2];
 	
 	//y = (float2)(2*c*c -1, 2*c*s);
-
-	float cc = 2*c*c -1;
-	float ss = 2*c*s;
-	v[2] = (float2) (x.x* cc- x.y* ss, x.x * ss + x.y * cc); 
-	//v[2] = (float2) (x.x* (2*c*c -1)- x.y* 2*c*s, x.x * 2*c*s + x.y * (2*c*c -1)); 
+	v[2] = (float2) (x.x* (2*c*c -1)- x.y* 2*c*s, x.x * 2*c*s + x.y * (2*c*c -1)); 
 	
 	v[3] = a[offset +idxS + 3 * N / 4];
 	x = v[3];
-	float ccc = cc*c -ss*s;
-	float sss = cc*s +ss*c;
-	v[3] = (float2) (x.x* ccc- x.y* sss, x.x * sss + x.y * ccc);
+	
+
 	//y = (float2)(c*c*c -3*s*s*c, 3 *s *c*c -s * s* s);
-	//v[3] = (float2) (x.x* (c*c*c -3*s*s*c)- x.y* (3 *s *c*c -s * s* s), x.x * (3 *s *c*c -s * s* s) + x.y * (c*c*c -3*s*s*c));
+	v[3] = (float2) (x.x* (c*c*c -3*s*s*c)- x.y* (3 *s *c*c -s * s* s), x.x * (3 *s *c*c -s * s* s) + x.y * (c*c*c -3*s*s*c));
 	
 	//v[3] = (float2) (x.x* y.x- x.y* y.y, x.x * y.y + x.y * y.x);
 

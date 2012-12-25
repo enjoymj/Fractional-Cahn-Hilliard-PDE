@@ -74,35 +74,45 @@ __kernel void fft1D(
 	float2 x;
 	//float2 y;
 	int mask = Ns -1;
-	float angle = -2 *(gid & mask)/(Ns * 4) * direction;
+	float angle = -2.0 *(gid & mask)/(Ns << 2) * direction;
 	float s = sinpi(angle);
 	float c = cospi(angle);
-	//int offset = offset_line * N;
-
-	v[0] = a[offset_line * N +idxS];
-	v[1] = a[offset_line * N +idxS+ N/4];
+	int offset = offset_line * N;
+	
+	v[0] = a[offset +idxS];
+	v[1] = a[offset +idxS+ N/4];
 
 	x = v[1];
-	
+
 	
 	v[1] = (float2)(x.x* c- x.y* s, x.x * s + x.y * c);
-	
-	v[2] = a[offset_line * N + idxS +  N/2 ];
+	//v[1].x = x.x*c -x.y*s;
+	//v[1].y = x.x*s +x.y*c;
+
+	v[2] = a[offset + idxS +  N/2 ];
 	
 	x = v[2];
-	
+
 	//y = (float2)(2*c*c -1, 2*c*s);
-	v[2] = (float2) (x.x* (2*c*c -1)- x.y* 2*c*s, x.x * 2*c*s + x.y * (2*c*c -1)); 
-	
-	v[3] = a[offset_line * N +idxS + 3 * N / 4];
+	float cc = 2*c*c -1;
+	float ss = 2*c*s;
+	v[2] = (float2) (x.x* cc- x.y* ss, x.x * ss + x.y * cc); 
+	//v[2] = (float2) (x.x* (2*c*c -1)- x.y* 2*c*s, x.x * 2*c*s + x.y * (2*c*c -1)); 
+	//v[2].x = x.x * cc -x.y *ss;
+	//v[2].y = x.x*ss + x.y * cc;
+	v[3] = a[offset+idxS + 3 * N / 4];
+
 	x = v[3];
-	
+
+	float ccc = cc*c -ss*s;
+	float sss = cc*s +ss*c;
 
 	//y = (float2)(c*c*c -3*s*s*c, 3 *s *c*c -s * s* s);
-	v[3] = (float2) (x.x* (c*c*c -3*s*s*c)- x.y* (3 *s *c*c -s * s* s), x.x * (3 *s *c*c -s * s* s) + x.y * (c*c*c -3*s*s*c));
+	//v[3] = (float2) (x.x* (c*c*c -3*s*s*c)- x.y* (3 *s *c*c -s * s* s), x.x * (3 *s *c*c -s * s* s) + x.y * (c*c*c -3*s*s*c));
 	
-	//v[3] = (float2) (x.x* y.x- x.y* y.y, x.x * y.y + x.y * y.x);
-
+	v[3] = (float2) (x.x* ccc- x.y* sss, x.x * sss + x.y * ccc);
+	//if(Ns ==16)
+		//printf("t = %d 16 %f  %f %f %f\n",gid,v[0].x,v[1].x,v[2].x,v[3].x);
 	FFT4(v,direction);
 
 
@@ -125,10 +135,11 @@ __kernel void fft1D(
 	//barrier(CLK_GLOBAL_MEM_FENCE);
 
 	idxD = get_group_id(0) *4*BLK + t;*/
-	b[offset_line * N + idxD ] = v[0];
-	b[offset_line * N + idxD +  Ns] = v[1];
-	b[offset_line * N + idxD + 2 * Ns] = v[2];
-	b[offset_line * N + idxD + 3 * Ns] = v[3];
+
+	b[offset+ idxD ] = v[0];
+	b[offset+ idxD +  Ns] = v[1];
+	b[offset + idxD + 2 * Ns] = v[2];
+	b[offset + idxD + 3 * Ns] = v[3];
 	
 	
 
