@@ -137,6 +137,7 @@ __kernel void transpose(
 	l_a[il][jl] = pr;
   }
   barrier(CLK_LOCAL_MEM_FENCE);
-  //b[offset + jg*jlsz + n*ig*ilsz + il + jl*n ] = l_a[jl][il] ;
-  b[j+nn*i ] = l_a[il][jl] ;
+	b[offset + jg*jlsz + n*ig*ilsz + il + jl*n ] = l_a[jl][il] ;
+//for 1D hierarchy FFT use following line;
+ // b[offset+j+nn*i ] = l_a[il][jl] ;
 }

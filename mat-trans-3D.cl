@@ -22,6 +22,7 @@ __kernel void transpose_3D(
   int ilsz = get_local_size(0);
   int jlsz = get_local_size(1);
   long z = get_global_size(2);
+  int nn=get_global_size(1);	
   long i = ig * ilsz + il;
   long j = jg * ilsz + jl;
   int N =n;
@@ -30,6 +31,6 @@ __kernel void transpose_3D(
     l_a[il][jl] = a[z*zg + i + n*j];
 
   barrier(CLK_LOCAL_MEM_FENCE);
-  b[z*zg + jg*jlsz + n*ig*ilsz + il + jl*n ] = l_a[jl][il] ;
-
+  //b[z*zg + jg*jlsz + n*ig*ilsz + il + jl*n ] = l_a[jl][il] ;
+  b[z*zg+j+nn*i ] = l_a[il][jl] ;
 }

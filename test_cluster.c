@@ -980,9 +980,10 @@ if (N !=64 )
 #endif
 void main(int argc, char** argv)
 {
-	int k = atoi(argv[1]);	
-	int  N  = pow(2,k);
-
+	//int k = atoi(argv[1]);	
+	//int  N  = pow(2,k);
+	int	N=1024;
+	int	k=10;
 	
 	float * a = (float *) malloc(sizeof(float)*N* N * 2);
 	float * b = (float *) malloc(sizeof(float) *N*N * 2);
