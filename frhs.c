@@ -28,7 +28,7 @@ void frhs(/*variable*/cl_mem temp,  /*result*/ cl_mem temp2,
 	fft2D(temp3,temp2,temp4,temp9,N,init_big,clean,mat_trans,mat_trans_3D,queue,-1);
 
 
-		#if 1
+		#if 0
 	float test;
 	CALL_CL_GUARDED(clFinish, (queue));
 	CALL_CL_GUARDED(clEnqueueReadBuffer, (
