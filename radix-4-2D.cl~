@@ -62,7 +62,7 @@ inline void FFT4(float2 * v,int direction)
 }
 //Stockham radix-4 fft for size of 64
 __kernel void fft2D_big(
-    __global const float2 *a,
+    __global float2 *a,
     __global float2 *b, 
     int N,
     int Ns,
@@ -80,13 +80,15 @@ __kernel void fft2D_big(
 	int l_grp = grp%(N/64);
 	offset_line = grp/(N/64);
 	int offset = offset_line * N;
-
+	//printf("grp = %d, offset = %d\n",grp,offset);
+	barrier(CLK_LOCAL_MEM_FENCE);
 	//save to size of 64 local array;
 	l_a[t*4]=a[offset+t*4*N/64+l_grp];
 	l_a[t*4+1]=a[offset+t*4*N/64+N/64+l_grp];
 	l_a[t*4+2]=a[offset+t*4*N/64+2*N/64+l_grp];
 	l_a[t*4+3]=a[offset+t*4*N/64+3*N/64+l_grp];
 
+//printf("t = %d big  %f  %f %f %f\n",t,l_a[t*4].x,l_a[t*4+1].x,l_a[t*4+2].x,l_a[t*4+3].x);
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 
@@ -95,6 +97,7 @@ __kernel void fft2D_big(
 	v[1] = l_a[idxS+ 16];
 	v[2] = l_a[idxS + 32];
 	v[3] = l_a[idxS + 48];
+printf("t = %d big  %f  %f %f %f\n",grp,v[0].x,v[1].x,v[2].x,v[3].x);
 	if(0 == option)
 	{1+1;}
 	else if(1 == option)
@@ -108,7 +111,7 @@ __kernel void fft2D_big(
 
 	FFT4(v,direction);
 	int idxD = t*4 ;
-
+barrier(CLK_LOCAL_MEM_FENCE);
 	//barrier(CLK_GLOBAL_MEM_FENCE);
 	l_a[idxD] = v[0];
 	l_a[idxD+1] = v[1];
@@ -119,11 +122,12 @@ __kernel void fft2D_big(
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
 	int mask = 3;
-	float angle = -(2.0 *(gid & 3))/16 * direction;
+	float angle = -(2.0 *(t % 4))/16 * direction;
 	float s = sinpi(angle);
 	float c = cospi(angle);
 	idxS = t;
-
+//if(t==0)
+//printf("t = %d la  %f  %f %f %f\n",t,l_a[0].x,l_a[16].x,l_a[32].x,l_a[48].x);
 	v[0] = l_a[idxS];
 	v[1] = l_a[idxS+ 16];
 
@@ -149,10 +153,12 @@ __kernel void fft2D_big(
 	v[3] = (float2) (x.x* ccc- x.y* sss, x.x * sss + x.y *ccc);
 	
 	//v[3] = (float2) (x.x* y.x- x.y* y.y, x.x * y.y + x.y * y.x);
-
+//if(t==0)
+//printf("t = %d big  %f  %f %f %f\n",grp,v[0].x,v[1].x,v[2].x,v[3].x);
 	FFT4(v,direction);
 
-
+//if(t==0)
+//printf("t = %d big  %f  %f %f %f\n",grp,v[0].x,v[1].x,v[2].x,v[3].x);
 
 	idxD = (t/Ns)*Ns*4 +(t & mask);
 
@@ -170,7 +176,7 @@ __kernel void fft2D_big(
 	//barrier(CLK_LOCAL_MEM_FENCE);
 	
 	 mask = 15;
-	angle = -(2.0 *(gid & 15))/64 * direction;
+	angle = -(2.0 *(t & 15))/64 * direction;
 	s = sinpi(angle);
 	c = cospi(angle);
 	idxS = t;
@@ -228,7 +234,7 @@ __kernel void fft2D_big(
 	
 	//barrier(CLK_GLOBAL_MEM_FENCE);
 //twiddle factor
-	float tw =-2 *t*4*l_grp/N*direction;
+	float tw =-(2.0 *t*4*l_grp)/N*direction;
 	float inc = -(2.0*l_grp)/N*direction;
 	s = sinpi(tw);
 	c=  cospi(tw);

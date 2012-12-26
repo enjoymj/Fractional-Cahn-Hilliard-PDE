@@ -76,7 +76,7 @@ __kernel void fft1D_clean(
 	int idxS = gid*4;	
 	int offset =offset_line *N;
 
-	if(N/64 ==4)
+	if(N ==256)
 	{
 		v[0] = a[offset +idxS];
 		v[1] = a[offset +idxS+ 1];
@@ -122,7 +122,7 @@ __kernel void fft1D_clean(
 
 
 	}
-	else if(N/64 ==16)
+	else if(N ==1024)
 	{
 		__local float2 l_a[16];		
 		int lid =get_local_id(0);
@@ -131,6 +131,7 @@ __kernel void fft1D_clean(
 		v[1] = a[offset +grp*16 + lid + 4];
 		v[2] = a[offset +grp*16 + lid + 8];
 		v[3] = a[offset +grp*16 + lid + 12];
+		printf("t = %d big  %f  %f %f %f\n",grp,v[0].x,v[1].x,v[2].x,v[3].x);
 		FFT4(v,direction);
 		l_a[lid*4 ] = v[0];
 		l_a[lid*4 + 1] = v[1];
@@ -156,14 +157,17 @@ __kernel void fft1D_clean(
 		v[2] = (float2) (x.x* (2*c*c -1)- x.y* 2*c*s, x.x * 2*c*s + x.y * (2*c*c -1)); 
 		
 		v[3] = l_a[lid + 12];
+		x = v[3];
+	
 		v[3] = (float2) (x.x* (c*c*c -3*s*s*c)- x.y* (3 *s *c*c -s * s* s),
 			 x.x * (3 *s *c*c -s * s* s) + x.y * (c*c*c -3*s*s*c));
 	
 	
 
 		FFT4(v,direction);
-
-		
+//int idxD = (lid/4)*16 +(lid & 3);
+		barrier(CLK_LOCAL_MEM_FENCE);
+printf("t = %d big  %f  %f %f %f\n",grp,v[0].x,v[1].x,v[2].x,v[3].x);
 		l_a[lid] = v[0];
 		l_a[lid +4] = v[1];
 		l_a[lid+8] = v[2];

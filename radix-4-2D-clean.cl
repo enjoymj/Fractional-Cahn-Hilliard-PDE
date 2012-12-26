@@ -124,6 +124,7 @@ __kernel void fft2D_clean(
 		v[2] = (float2) (x.x* (2*c*c -1)- x.y* 2*c*s, x.x * 2*c*s + x.y * (2*c*c -1)); 
 		
 		v[3] = l_a[lid + 12];
+		x = v[3];
 		v[3] = (float2) (x.x* (c*c*c -3*s*s*c)- x.y* (3 *s *c*c -s * s* s),
 			 x.x * (3 *s *c*c -s * s* s) + x.y * (c*c*c -3*s*s*c));
 	
