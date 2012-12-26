@@ -7,11 +7,11 @@
 #include<stdlib.h>
 #include<math.h>
 
-#ifndef M_PI
-#define M_PI 3.14156265358979323846
+#ifndef PI
+#define PI 3.14156265358979323846
 #endif
 
-#include "ch.h"
+//#include "ch.h"
 
 
 #define Q 1
@@ -21,6 +21,29 @@
 #define X 5
 #define Y 6
 
+
+struct parameter
+{
+	float h;
+        int N;
+	float epsilon;
+	float s;	
+        //coutourv = linspace(-1,1,11);
+
+	// maximum total number of CG or fixed point interations per time step
+	int maxCG;
+
+	// maximum number of Newton steps per time step
+	int maxN;
+
+	float Ntol;
+	float cgtol;
+	//param.xx = xx;
+	//param.yy = yy;
+	int cgloc;
+	int nloc;
+
+};
 
 void mat__trans(cl_mem a, cl_mem b, int N, cl_kernel mat_trans, cl_command_queue queue,int option, float epsilon,float k,float s)
 {
@@ -110,7 +133,7 @@ void fft_1D_big(cl_mem a,cl_mem b,cl_mem c, int N, cl_kernel init_big, cl_kernel
 		cl_long offset = offset_line * N;
 		SET_7_KERNEL_ARGS(clean, b, c, N, Ns,direction,offset_line,y);
 		ldim[0] =4;
-
+		//printf("i m here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1\n");
 		CALL_CL_GUARDED(clEnqueueNDRangeKernel,
 			(queue, clean,
 			 1, NULL, gdim, ldim,
@@ -535,7 +558,7 @@ void fft2D_new(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init,cl_k
 		mat__trans(b,c,N,mat_trans,queue,-1,1,1,1);
 	
 }
-#if 0
+#if 1
 void fft2D_big(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init_big,
 		cl_kernel clean,cl_kernel mat_trans, cl_command_queue queue,int direction)
 {
@@ -566,7 +589,7 @@ void fft2D_big(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init_big,
 }
 #endif
 
-#if 1
+#if 0
 
 void fft2D_big(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init_big,
 		cl_kernel clean,cl_kernel mat_trans, cl_command_queue queue,int direction)
@@ -780,7 +803,36 @@ void fft2D_big_new(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init_
 				(queue, init_big,
 				 1, NULL, gdim, ldim,
 				0, NULL, NULL));
-		
+			CALL_CL_GUARDED(clFinish, (queue));
+//int aa;		
+		//scanf("%d",&aa);
+			#if 0
+	float * cc = (float *) malloc(sizeof(float) * N*N* 2);
+	CALL_CL_GUARDED(clFinish, (queue));
+	CALL_CL_GUARDED(clEnqueueReadBuffer, (
+        	queue, b, /*blocking*/ CL_TRUE, /*offset*/ 0,
+       		2*N*N* sizeof(float), cc,
+        	0, NULL, NULL));
+	
+
+	/*for(int i =0; i<  N; i++)
+	{
+		printf("a%f+ i*",a[2*i]);		
+		printf("%f\n",a[2*i+1]);
+	}*/
+	int T = 10<N? 10:N ;
+	for(int i =0; i<  T; i++)
+	{
+		//printf("%f + i*",a[2*i]);		
+		//printf("%f\t",a[2*i+1]);
+		printf("%f + i*",cc[2*i]);		
+		printf("%f\n",cc[2*i+1]);
+	}
+
+	#endif 
+
+
+#if 1		
 	if(N!=64)
 		if(N == 1024)
 		{
@@ -854,20 +906,15 @@ void fft2D_big_new(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init_
 
 			return;
 		}	
-	
+#endif	
 	//CALL_CL_GUARDED(clFinish, (queue));
 	//printf("1D fine \n");
 
 	mat__trans(b,c,N,mat_trans,queue,0,1,1,1);
 
 	//CALL_CL_GUARDED(clFinish, (queue));
-/*	for(int j= 0;j<N;j++)
-	{
-		//fft_1D(c,b,d,N,fft_init,fft1D,queue,direction,j);
-		fft_1D_big(c, b,d,N, init_big, clean,mat_trans,queue,direction,j);
-	}
-*/
 
+#if 1
 		Ns =1;
 		SET_7_KERNEL_ARGS(init_big, c, b, N, Ns,direction,offset_line,y);
 
@@ -877,8 +924,8 @@ void fft2D_big_new(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init_
 				(queue, init_big,
 				 1, NULL, gdim, ldim,
 				0, NULL, NULL));
-
-		
+#endif
+#if 1		
 if (N !=64 )
 		
 
@@ -942,7 +989,7 @@ if (N !=64 )
 
 			return;
 		}	
-	
+#endif	
 
 	//CALL_CL_GUARDED(clFinish, (queue));
 	if(direction == 1)
@@ -961,14 +1008,15 @@ void main(int argc, char** argv)
 	int k = atoi(argv[1]);	
 	int  N  = pow(2,k);
 
-	
+	//N =1024; k= 10;
 	float * a = (float *) malloc(sizeof(float)*N* N * 2);
 	float * b = (float *) malloc(sizeof(float) *N*N * 2);
 	float * c = (float *) malloc(sizeof(float) * N*N* 2);
 	float p = 2*M_PI ;	
 	for (int i =0; i< N*N; i++)
 	{
-		a[2*i] = 1;
+		a[2*i] = sin(M_PI *3/N *i);
+		//a[2*i] = 1;
 		a[2*i+1] = 0;
 		b[2*i] = 1;
 		b[2*i+1] = 0;
@@ -1146,14 +1194,64 @@ void main(int argc, char** argv)
 	float Nfact = 0.7;
 	float CGfact = 0.7;
 	double elapsed ;
-
+	int T;
 	CALL_CL_GUARDED(clFinish, (queue));
 	get_timestamp(&time1);
 
 //for(int s=0;s<100;s++)
-	//fft_1D_big(buf_a,buf_b,buf_c,N,fft_big,fft_clean,mat_trans,queue,direction,0);
-	//fft_1D_new(buf_a,buf_b,buf_c,N,fft_init,fft_interm, fft1D,queue,direction,0);
-	//fft_1D(buf_a,buf_b,buf_c,N,fft_init, fft1D,queue,direction,0);
+
+	//fft_1D(buf_a,buf_b,buf_c,N*N,fft_init, fft1D,queue,direction,0);
+	#if 0
+	CALL_CL_GUARDED(clFinish, (queue));
+	CALL_CL_GUARDED(clEnqueueReadBuffer, (
+        	queue, buf_b, /*blocking*/ CL_TRUE, /*offset*/ 0,
+       		2*N*N* sizeof(float), c,
+        	0, NULL, NULL));
+	
+
+	/*for(int i =0; i<  N; i++)
+	{
+		printf("a%f+ i*",a[2*i]);		
+		printf("%f\n",a[2*i+1]);
+	}*/
+	T = 266<N*N? 256:N*N ;
+	for(int i =0; i<  T; i++)
+	{
+		printf("i = %d %f + i*",i, a[2*i]);		
+		printf("%f\t",a[2*i+1]);
+		printf("%f + i*",c[2*i]);		
+		printf("%f\n",c[2*i+1]);
+	}
+printf("____________________________________________________________________\n");
+	#endif 
+
+	//fft_1D_big(buf_a,buf_b,buf_c,N*N,fft_big,fft_clean,mat_trans,queue,direction,0);
+
+	#if 0
+	CALL_CL_GUARDED(clFinish, (queue));
+	CALL_CL_GUARDED(clEnqueueReadBuffer, (
+        	queue, buf_c, /*blocking*/ CL_TRUE, /*offset*/ 0,
+       		2*N*N* sizeof(float), c,
+        	0, NULL, NULL));
+	
+
+	/*for(int i =0; i<  N; i++)
+	{
+		printf("a%f+ i*",a[2*i]);		
+		printf("%f\n",a[2*i+1]);
+	}*/
+	T = 200<N*N? 200:N*N ;
+	for(int i =0; i<  T; i++)
+	{
+		printf("i = %d %f + i*",i, a[2*i]);		
+		printf("%f\t",a[2*i+1]);
+		printf("%f + i*",c[2*i+160]);		
+		printf("%f\n",c[2*i+1+160]);
+	}
+
+	#endif 
+	//fft_1D_new(buf_a,buf_b,buf_c,N*N,fft_init,fft_interm, fft1D,queue,direction,0);
+	
 	//fft2D(buf_a,buf_b,buf_c,buf_d,N,fft_init,fft1D,mat_trans,queue, 1);
 	//fft2D_new(buf_a,buf_b,buf_c,buf_d,N,fft_init,fft_interm,fft1D,mat_trans,queue, 1);
 	//fft2D_big(buf_a,buf_b,buf_c,buf_d,N,fft_big,fft_clean,mat_trans,queue,direction);
@@ -1182,37 +1280,51 @@ void main(int argc, char** argv)
 	//fft_shar(buf_a,buf_b,buf_c,buf_d,N,0.1,0,1,fft1D_init,fft1D,mat_trans,queue);
 	//mat__trans(buf_a,buf_b,N,mat_trans,queue,4,0.1,0,1);
 	//double elapsed = reduction_mult(buf_a, buf_b,buf_c,N*N,reduct_mul,reduct,queue);
+
+	CALL_CL_GUARDED(clFinish, (queue));
+	get_timestamp(&time1);
+	//fft_1D(buf_a,buf_b,buf_c,N*N,fft_init, fft1D,queue,direction,0);
+	CALL_CL_GUARDED(clFinish, (queue));
+	get_timestamp(&time2);
+	elapsed = timestamp_diff_in_seconds(time1,time2);
+	printf("1D FFT of size %d  array  on gpu takes %f s\n", N*N,elapsed);
+	printf("achieve %f GFLOPS \n",5*2*N*N*k/elapsed*1e-9);
+	printf("---------------------------------------------\n");
+
+
+
+
 	CALL_CL_GUARDED(clFinish, (queue));
 
 	
 	get_timestamp(&time1);
-	fft2D(buf_a,buf_b,buf_c,buf_d,N,fft_init,fft1D,mat_trans,queue, 1);
+	//fft2D(buf_a,buf_b,buf_c,buf_d,N,fft_init,fft1D,mat_trans,queue, 1);
 	CALL_CL_GUARDED(clFinish, (queue));
 	get_timestamp(&time2);
 	elapsed = timestamp_diff_in_seconds(time1,time2);
 	printf("Navie 2D FFT of size %d * %d matrix  on gpu takes %f s\n", N,N,elapsed);
-	printf("achieve %f GFLOPS \n",6*8*N*N*k/elapsed*1e-9);
+	printf("achieve %f GFLOPS \n",5*2*N*N*k/elapsed*1e-9);
 	printf("---------------------------------------------\n");
 	//printf("data access from global achieve %f GB/s\n",sizeof(float)*2*16*N*N/elapsed*1e-9);
 	CALL_CL_GUARDED(clFinish, (queue));
 	get_timestamp(&time1);
-	fft2D_new(buf_a,buf_b,buf_c,buf_d,N,fft_init,fft_interm,fft1D,mat_trans,queue, 1);
+	//fft2D_new(buf_a,buf_b,buf_c,buf_d,N,fft_init,fft_interm,fft1D,mat_trans,queue, 1);
 	CALL_CL_GUARDED(clFinish, (queue));
 	get_timestamp(&time2);
 	elapsed = timestamp_diff_in_seconds(time1,time2);
 	printf("local data exchange 2D FFT of size %d * %d matrix  on gpu takes %f s\n", N,N,elapsed);
-	printf("achieve %f GFLOPS \n",6*8*N*N*k/elapsed*1e-9);
+	printf("achieve %f GFLOPS \n",5*2*N*N*k/elapsed*1e-9);
 	printf("---------------------------------------------\n");
 
 
 	CALL_CL_GUARDED(clFinish, (queue));
 	get_timestamp(&time1);
-	fft2D_big(buf_a,buf_b,buf_c,buf_d,N,fft_big,fft_clean,mat_trans,queue,direction);
+	//fft2D_big(buf_a,buf_b,buf_c,buf_d,N,fft_big,fft_clean,mat_trans,queue,direction);
 	CALL_CL_GUARDED(clFinish, (queue));
 	get_timestamp(&time2);
 	elapsed = timestamp_diff_in_seconds(time1,time2);
 	printf("Hierarchy 2D FFT of size %d * %d matrix  on gpu takes %f s\n", N,N,elapsed);
-	printf("achieve %f GFLOPS \n",6*8*N*N*k/elapsed*1e-9);
+	printf("achieve %f GFLOPS \n",5*2*N*N*k/elapsed*1e-9);
 	printf("---------------------------------------------\n");
 
 
@@ -1224,7 +1336,7 @@ void main(int argc, char** argv)
 	get_timestamp(&time2);
 	elapsed = timestamp_diff_in_seconds(time1,time2);
 	printf("Using 2D kernel 2D FFT of size %d * %d matrix  on gpu takes %f s\n", N,N,elapsed);
-	printf("achieve %f GFLOPS \n",6*8*N*N*k/elapsed*1e-9);
+	printf("achieve %f GFLOPS \n",5*2*N*N*k/elapsed*1e-9);
 	printf("---------------------------------------------\n");
 
 
@@ -1237,7 +1349,8 @@ void main(int argc, char** argv)
 
 
 	direction = -1;
-	//fft_1D(buf_b,buf_c,buf_d,N,fft_init, fft1D,queue,direction,0);
+	//fft_1D(buf_b,buf_c,buf_d,N*N,fft_init, fft1D,queue,direction,0);
+	//fft_1D_big(buf_b,buf_c,buf_d,N*N,fft_big,fft_clean,mat_trans,queue,direction,0);
 	fft2D(buf_b,buf_c,buf_d,buf_e,N,fft_init,fft1D,mat_trans,queue, direction);
 	//fft2D_new(buf_b,buf_c,buf_e,buf_d,N,fft_init,fft_interm,fft1D,mat_trans,queue, -1);
 	//fft2D_big(buf_b,buf_c,buf_d,buf_e,N,fft_big,fft_clean,mat_trans,queue,direction);
@@ -1258,7 +1371,7 @@ void main(int argc, char** argv)
 	
 
 	#endif
-	#if 0
+	#if 1
 	CALL_CL_GUARDED(clFinish, (queue));
 	CALL_CL_GUARDED(clEnqueueReadBuffer, (
         	queue, buf_c, /*blocking*/ CL_TRUE, /*offset*/ 0,
@@ -1271,7 +1384,7 @@ void main(int argc, char** argv)
 		printf("a%f+ i*",a[2*i]);		
 		printf("%f\n",a[2*i+1]);
 	}*/
-	int T = 10<N? 10:N ;
+	T = 10<N? 10:N ;
 	for(int i =0; i<  T; i++)
 	{
 		printf("%f + i*",a[2*i]);		

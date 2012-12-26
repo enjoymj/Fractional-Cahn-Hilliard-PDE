@@ -105,8 +105,8 @@ int main(int argc, char** argv)
 	srand(1);
 	for(int i =0;i<N*N;i++)
 	{	
-		uu[2*i]=sin(i*M_PI/N*2);
-		//uu[2*i] =0.5;
+		
+		uu[2*i] =1;
 		//printf("%f\n",uu[2*i]);
 		uu[2*i+1] =0 ;
 	}
@@ -290,10 +290,11 @@ int main(int argc, char** argv)
 		chstep(u, fu0, u1, rhs, fu1, temp, temp2,temp3,
 			temp4,temp5, temp6,temp7,temp8,temp9,
 			N, &fail, kk, &param, 
-			fft_2D,fft_2D_clean, fft_init_w,vec_add, 
-			vec_zero,mat_trans,mat_trans_3D,reduct,reduct_mul,reduct_init,resid,resid_init,queue);
-CALL_CL_GUARDED(clFinish, (queue));
-#if 1 
+			fft_2D,fft_2D_clean, fft_init_w,vec_add,
+			vec_zero,mat_trans,mat_trans_3D,reduct,reduct_mul,
+			reduct_init,resid,resid_init,queue);
+		CALL_CL_GUARDED(clFinish, (queue));
+#if 0 
 	CALL_CL_GUARDED(clFinish, (queue));
 	CALL_CL_GUARDED(clEnqueueReadBuffer, (
         	queue, u1, /*blocking*/ CL_TRUE, /*offset*/ 0,
