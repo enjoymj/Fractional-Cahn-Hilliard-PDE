@@ -39,11 +39,11 @@ void frhs(/*variable*/cl_mem temp,  /*result*/ cl_mem temp2,
 
 
 		#if 1
-	float test;
+	double test;
 	CALL_CL_GUARDED(clFinish, (queue));
 	CALL_CL_GUARDED(clEnqueueReadBuffer, (
         	queue, temp4, /*blocking*/ CL_TRUE, /*offset*/ 0,
-       		sizeof(float), &test,
+       		sizeof(double), &test,
         	0, NULL, NULL));
 	
 

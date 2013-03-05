@@ -17,7 +17,7 @@
 
 #include"ch.h"
 
-void mat__trans(cl_mem a, cl_mem b, int N, cl_kernel mat_trans, cl_command_queue queue,int option, float epsilon,float k,float s)
+void mat__trans(cl_mem a, cl_mem b, int N, cl_kernel mat_trans, cl_command_queue queue,int option, double epsilon,double k,double s)
 {
 
 	cl_long offset = 0;
@@ -68,9 +68,9 @@ void fft_1D(cl_mem a,cl_mem b,cl_mem c, int N, cl_kernel init, cl_kernel knl,cl_
 					 1, NULL, gdim, ldim,
 					0, NULL, NULL));
 			clEnqueueCopyBuffer(queue,c,b,
-					offset_line*N*2*sizeof(float),
-					offset_line*N*2*sizeof(float),
-					sizeof(float)*N*2,0,NULL,NULL);
+					offset_line*N*2*sizeof(double),
+					offset_line*N*2*sizeof(double),
+					sizeof(double)*N*2,0,NULL,NULL);
 			//VecCopy(c,b,N,offset_line,vec_copy,queue);
 			
 			
@@ -113,9 +113,9 @@ void fft_1D_new(cl_mem a,cl_mem b,cl_mem c, int N, cl_kernel init, cl_kernel int
 			 1, NULL, gdim, ldim,
 			0, NULL, NULL));
 	clEnqueueCopyBuffer(queue,c,b,
-			offset_line*N*2*sizeof(float),
-			offset_line*N*2*sizeof(float),
-			sizeof(float)*N*2,0,NULL,NULL);
+			offset_line*N*2*sizeof(double),
+			offset_line*N*2*sizeof(double),
+			sizeof(double)*N*2,0,NULL,NULL);
 	}
 	if(N>=16)
 	{
@@ -130,9 +130,9 @@ void fft_1D_new(cl_mem a,cl_mem b,cl_mem c, int N, cl_kernel init, cl_kernel int
 		 1, NULL, gdim, ldim,
 		0, NULL, NULL));
 		clEnqueueCopyBuffer(queue,c,b,
-		offset_line*N*2*sizeof(float),
-		offset_line*N*2*sizeof(float),
-		sizeof(float)*N*2,0,NULL,NULL);
+		offset_line*N*2*sizeof(double),
+		offset_line*N*2*sizeof(double),
+		sizeof(double)*N*2,0,NULL,NULL);
 	}
 	if(N >=64) 
 	for(Ns=64; Ns<N; Ns<<=2)
@@ -149,9 +149,9 @@ void fft_1D_new(cl_mem a,cl_mem b,cl_mem c, int N, cl_kernel init, cl_kernel int
 					 1, NULL, gdim, ldim,
 					0, NULL, NULL));
 			clEnqueueCopyBuffer(queue,c,b,
-					offset_line*N*2*sizeof(float),
-					offset_line*N*2*sizeof(float),
-					sizeof(float)*N*2,0,NULL,NULL);
+					offset_line*N*2*sizeof(double),
+					offset_line*N*2*sizeof(double),
+					sizeof(double)*N*2,0,NULL,NULL);
 			//VecCopy(c,b,N,offset_line,vec_copy,queue);
 			
 			
@@ -195,9 +195,9 @@ void fft_1D_w_orig(cl_mem a,cl_mem b,cl_mem c,int N, cl_kernel init_w, cl_kernel
 					0, NULL, NULL));
 			//CALL_CL_GUARDED(clFinish, (queue));
 			clEnqueueCopyBuffer(queue,c,b,
-					offset_line*N*2*sizeof(float),
-					offset_line*N*2*sizeof(float),
-					sizeof(float)*N*2,0,NULL,NULL);
+					offset_line*N*2*sizeof(double),
+					offset_line*N*2*sizeof(double),
+					sizeof(double)*N*2,0,NULL,NULL);
 			//VecCopy(c,b,N,offset_line,vec_copy,queue);
 			
 			//CALL_CL_GUARDED(clFinish, (queue));
@@ -241,9 +241,9 @@ void fft_1D_w(cl_mem a,cl_mem b,cl_mem c,cl_mem d, int N, cl_kernel init_w, cl_k
 					 1, NULL, gdim, ldim,
 					0, NULL, NULL));
 			clEnqueueCopyBuffer(queue,d,c,
-					offset_line*N*2*sizeof(float),
-					offset_line*N*2*sizeof(float),
-					sizeof(float)*N*2,0,NULL,NULL);
+					offset_line*N*2*sizeof(double),
+					offset_line*N*2*sizeof(double),
+					sizeof(double)*N*2,0,NULL,NULL);
 			//VecCopy(c,b,N,offset_line,vec_copy,queue);
 			
 			
@@ -256,7 +256,7 @@ void fft_1D_w(cl_mem a,cl_mem b,cl_mem c,cl_mem d, int N, cl_kernel init_w, cl_k
 
 
 
-void fft_d_q(cl_mem a,cl_mem c,cl_mem b,cl_mem d, int N,float epsilon,float k,float s, cl_kernel init_big,
+void fft_d_q(cl_mem a,cl_mem c,cl_mem b,cl_mem d, int N,double epsilon,double k,double s, cl_kernel init_big,
 		cl_kernel clean,cl_kernel mat_trans,cl_kernel mat_trans_3D,cl_command_queue queue)
 {
 	fft2D_transpose(a, c, b,d,N, init_big,
@@ -266,7 +266,7 @@ void fft_d_q(cl_mem a,cl_mem c,cl_mem b,cl_mem d, int N,float epsilon,float k,fl
 }
 
 
-void fft_d_nlaps2(cl_mem a,cl_mem c,cl_mem b,cl_mem d,int N,float epsilon,float k,float s, cl_kernel init_big,
+void fft_d_nlaps2(cl_mem a,cl_mem c,cl_mem b,cl_mem d,int N,double epsilon,double k,double s, cl_kernel init_big,
 		cl_kernel clean,cl_kernel mat_trans,cl_kernel mat_trans_3D,cl_command_queue queue)
 {
 	fft2D_transpose(a, c, b,d,N, init_big,
@@ -276,7 +276,7 @@ void fft_d_nlaps2(cl_mem a,cl_mem c,cl_mem b,cl_mem d,int N,float epsilon,float 
 }
 
 
-void fft_shar(cl_mem a ,cl_mem c ,cl_mem b,cl_mem d,int N,float epsilon,float k,float s, cl_kernel init_big,
+void fft_shar(cl_mem a ,cl_mem c ,cl_mem b,cl_mem d,int N,double epsilon,double k,double s, cl_kernel init_big,
 		cl_kernel clean,cl_kernel mat_trans,cl_kernel mat_trans_3D,cl_command_queue queue)
 {
 
@@ -288,7 +288,7 @@ void fft_shar(cl_mem a ,cl_mem c ,cl_mem b,cl_mem d,int N,float epsilon,float k,
 
 
 // fft(u.^3-u) .*nlap_s
-void fft_w_orig(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N,float epsilon,float k,float s, cl_kernel init_big,
+void fft_w_orig(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N,double epsilon,double k,double s, cl_kernel init_big,
 		cl_kernel clean,cl_kernel mat_trans,cl_kernel mat_trans_3D, cl_command_queue queue)
 {
 
@@ -300,7 +300,7 @@ void fft_w_orig(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N,float epsilon,float
 }
 
 //fft((3*u.^2 -1) .* pk).*nlap_s
-void fft_w(cl_mem a, cl_mem b, cl_mem c,/*result */cl_mem d,int N,float epsilon,float k,float s, 
+void fft_w(cl_mem a, cl_mem b, cl_mem c,/*result */cl_mem d,int N,double epsilon,double k,double s, 
 		cl_kernel init_big,cl_kernel init_w,cl_kernel clean,
 		cl_kernel mat_trans,cl_kernel mat_trans_3D,cl_command_queue queue)
 {
@@ -340,7 +340,7 @@ void fft_w(cl_mem a, cl_mem b, cl_mem c,/*result */cl_mem d,int N,float epsilon,
 
 			
 			int option =0;
-			float k =0;
+			double k =0;
 			int n = 16;			
 						
 			SET_8_KERNEL_ARGS(mat_trans_3D, d, c, n, option,k,k,k,N);
@@ -372,7 +372,7 @@ void fft_w(cl_mem a, cl_mem b, cl_mem c,/*result */cl_mem d,int N,float epsilon,
 
 							
 			int option =0;
-			float k =0;
+			double k =0;
 			int n = 4;
 						
 			SET_8_KERNEL_ARGS(mat_trans_3D, d, c, n, option,k,k,k,N);
@@ -440,7 +440,7 @@ void fft_w(cl_mem a, cl_mem b, cl_mem c,/*result */cl_mem d,int N,float epsilon,
 			{
 			
 			int option =0;
-			float k =0;
+			double k =0;
 			int n = 16;			
 						
 			SET_8_KERNEL_ARGS(mat_trans_3D, d, c, n, option,k,k,k,N);
@@ -458,7 +458,7 @@ void fft_w(cl_mem a, cl_mem b, cl_mem c,/*result */cl_mem d,int N,float epsilon,
 			{
 		
 			int option =0;
-			float k =0;
+			double k =0;
 			int n = 4;
 						
 			SET_8_KERNEL_ARGS(mat_trans_3D, d, c, n, option,k,k,k,N);
@@ -489,7 +489,7 @@ void fft_w(cl_mem a, cl_mem b, cl_mem c,/*result */cl_mem d,int N,float epsilon,
 
 
 
-void fft_d_x(cl_mem a,cl_mem c,cl_mem b,cl_mem d,int N,float epsilon,float k,float s, cl_kernel init_big,
+void fft_d_x(cl_mem a,cl_mem c,cl_mem b,cl_mem d,int N,double epsilon,double k,double s, cl_kernel init_big,
 		cl_kernel clean,cl_kernel mat_trans,cl_kernel mat_trans_3D,cl_command_queue queue)
 {
 	fft2D_transpose(a, c, b,d,N, init_big,
@@ -499,7 +499,7 @@ void fft_d_x(cl_mem a,cl_mem c,cl_mem b,cl_mem d,int N,float epsilon,float k,flo
 }
 
 
-void fft_d_y(cl_mem a,cl_mem c,cl_mem b,cl_mem d,int N,float epsilon,float k,float s, cl_kernel init_big,
+void fft_d_y(cl_mem a,cl_mem c,cl_mem b,cl_mem d,int N,double epsilon,double k,double s, cl_kernel init_big,
 		cl_kernel clean,cl_kernel mat_trans,cl_kernel mat_trans_3D,cl_command_queue queue)
 {
 	fft2D_transpose(a, c, b,d,N, init_big,
@@ -549,7 +549,7 @@ void fft2D(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init_big,
 
 			
 			int option =0;
-			float k =0;
+			double k =0;
 			int n = 16;			
 						
 			SET_8_KERNEL_ARGS(mat_trans_3D, c, b, n, option,k,k,k,N);
@@ -581,7 +581,7 @@ void fft2D(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init_big,
 
 							
 			int option =0;
-			float k =0;
+			double k =0;
 			int n = 4;
 						
 			SET_8_KERNEL_ARGS(mat_trans_3D, c, b, n, option,k,k,k,N);
@@ -649,7 +649,7 @@ void fft2D(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init_big,
 			{
 			
 			int option =0;
-			float k =0;
+			double k =0;
 			int n = 16;			
 						
 			SET_8_KERNEL_ARGS(mat_trans_3D, d, b, n, option,k,k,k,N);
@@ -667,7 +667,7 @@ void fft2D(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init_big,
 			{
 		
 			int option =0;
-			float k =0;
+			double k =0;
 			int n = 4;
 						
 			SET_8_KERNEL_ARGS(mat_trans_3D, d, b, n, option,k,k,k,N);
@@ -741,7 +741,7 @@ void fft2D_transpose(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel ini
 
 			
 			int option =0;
-			float k =0;
+			double k =0;
 			int n = 16;			
 						
 			SET_8_KERNEL_ARGS(mat_trans_3D, c, b, n, option,k,k,k,N);
@@ -773,7 +773,7 @@ void fft2D_transpose(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel ini
 
 							
 			int option =0;
-			float k =0;
+			double k =0;
 			int n = 4;
 						
 			SET_8_KERNEL_ARGS(mat_trans_3D, c, b, n, option,k,k,k,N);
@@ -842,7 +842,7 @@ void fft2D_transpose(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel ini
 			{
 			
 			int option =0;
-			float k =0;
+			double k =0;
 			int n = 16;			
 						
 			SET_8_KERNEL_ARGS(mat_trans_3D, d, b, n, option,k,k,k,N);
@@ -860,7 +860,7 @@ void fft2D_transpose(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel ini
 			{
 		
 			int option =0;
-			float k =0;
+			double k =0;
 			int n = 4;
 						
 			SET_8_KERNEL_ARGS(mat_trans_3D, d, b, n, option,k,k,k,N);

@@ -24,8 +24,8 @@ __kernel void transpose(
   long i = ig * ilsz + il;
   long j = jg * ilsz + jl;
   int N =n;
-  float h = 1.;
-  //float h = 2 * M_PI_F /N;
+  //float h = 1.;
+  float h = 2 * M_PI_F /N;
   //l_a[il][jl] = a[i + n*j];
   if(0 == option)
     l_a[il][jl] = a[offset + i + n*j];

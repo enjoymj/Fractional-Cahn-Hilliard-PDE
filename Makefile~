@@ -11,5 +11,5 @@ test: test_cluster.c cl-helper.c
 ch2d: ch2d.c chcg.c chstep.c frhs.c reduction.c energy.c vec_add.c cl-helper.c fft.c
 	gcc $(CL_INC) $(CL_LIB) -std=gnu99 -D_XOPEN_SOURCE=500 -o$@ $^ -lOpenCL -lrt -lm
 
-turk: new_test.c fft.c cl-helper.c vec_add.c frhs.c
+turk: new_test.c fft.c cl-helper.c vec_add.c
 	gcc $(CL_INC) $(CL_LIB) -std=gnu99 -D_XOPEN_SOURCE=500 -o$@ $^ -lOpenCL -lrt -lm 

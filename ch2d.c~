@@ -85,8 +85,8 @@ int main(int argc, char** argv)
 	param.maxN = 5;
 	param.s = s;
 	//Minimum and starting time step
-	float mink = 1e-7;
-	float startk = 1e-4;
+	float mink = 1e-9;
+	float startk = 1e-7;
 
 	// Tolerances
 	param.Ntol = 1e-3;

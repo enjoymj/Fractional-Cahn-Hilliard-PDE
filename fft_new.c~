@@ -1,0 +1,468 @@
+#include "ch.h"
+
+
+void fft_1D_new(cl_mem a,cl_mem b,cl_mem c, int N, cl_kernel init, cl_kernel interm, cl_kernel knl,cl_command_queue queue,int direction,int offset_line)
+{
+	//handle complex-to-complex fft, accutal size = 2 * N
+
+	//size_t ldim[] = { 128 };
+	//size_t gdim[] = { (N /ldim[0])/2};
+	int Ns = 1;
+	int y =0;
+	SET_7_KERNEL_ARGS(init, a, b, N, Ns,direction,offset_line,y);
+
+
+	size_t ldim[] = { 1 };
+	size_t gdim[] = { N/4 };
+
+	CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+			(queue, init,
+			 1, NULL, gdim, ldim,
+			0, NULL, NULL));
+
+	if(N >= 4)
+	{
+	Ns = 4;
+
+	SET_6_KERNEL_ARGS(interm, b, c, N, Ns,direction,offset_line);
+	size_t ldim[] = { 16 };
+	size_t gdim[] = { N/4 };
+	
+	CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+			(queue, interm,
+			 1, NULL, gdim, ldim,
+			0, NULL, NULL));
+	clEnqueueCopyBuffer(queue,c,b,
+			offset_line*N*2*sizeof(float),
+			offset_line*N*2*sizeof(float),
+			sizeof(float)*N*2,0,NULL,NULL);
+	}
+	if(N>=16)
+	{
+		Ns = 16;
+
+		SET_6_KERNEL_ARGS(interm, b, c, N, Ns,direction,offset_line);
+		size_t ldim[] = { 16 };
+		size_t gdim[] = { N/4 };
+
+		CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+		(queue, interm,
+		 1, NULL, gdim, ldim,
+		0, NULL, NULL));
+		clEnqueueCopyBuffer(queue,c,b,
+		offset_line*N*2*sizeof(float),
+		offset_line*N*2*sizeof(float),
+		sizeof(float)*N*2,0,NULL,NULL);
+	}
+	if(N >=64) 
+	for(Ns=64; Ns<N; Ns<<=2)
+	{
+
+
+
+			SET_6_KERNEL_ARGS(knl, b, c, N, Ns,direction,offset_line);
+			size_t ldim[] = { 1 };
+			size_t gdim[] = { N/4 };
+			
+			CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+					(queue, knl,
+					 1, NULL, gdim, ldim,
+					0, NULL, NULL));
+			clEnqueueCopyBuffer(queue,c,b,
+					offset_line*N*2*sizeof(float),
+					offset_line*N*2*sizeof(float),
+					sizeof(float)*N*2,0,NULL,NULL);
+			//VecCopy(c,b,N,offset_line,vec_copy,queue);
+			
+			
+			
+		  
+	}
+	
+}
+
+
+
+
+
+void fft2D_new(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init,cl_kernel interm,
+		cl_kernel fft1D,cl_kernel mat_trans, cl_command_queue queue,int direction)
+{
+#if 0	
+		int Ns = 1;
+		int y =0;
+		int x =N*N;
+		SET_7_KERNEL_ARGS(init, a, b, N, Ns,direction,y,y);
+
+
+		size_t ldim[] = { 1 };
+		size_t gdim[] = { N*N/4 };
+
+		CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+			(queue, init,
+			 1, NULL, gdim, ldim,
+			0, NULL, NULL));
+#endif
+
+#if 1
+	int Ns = 1;
+	int stride = 64;
+	for(int blk=0; blk<stride;blk++)
+		for(int j= 0;j<N/stride;j++)
+		{
+			int offset = blk*N/stride +j;
+		
+		int y =0;
+		SET_7_KERNEL_ARGS(init, a, b, N, Ns,direction,offset,y);
+
+
+		size_t ldim[] = { 1 };
+		size_t gdim[] = { N/4 };
+
+		CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+			(queue, init,
+			 1, NULL, gdim, ldim,
+			0, NULL, NULL));
+	}
+
+	for(int blk=0; blk<stride;blk++)
+		for(int j= 0;j<N/stride;j++)
+		{
+			int offset = blk*N/stride +j;
+		if(N >= 4)
+		{
+		Ns = 4;
+
+		SET_6_KERNEL_ARGS(interm, b, c, N, Ns,direction,offset);
+		size_t ldim[] = { 16 };
+		size_t gdim[] = { N/4 };
+		CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+		(queue, interm,
+		 1, NULL, gdim, ldim,
+		0, NULL, NULL));
+
+		}
+}
+		
+	
+		clEnqueueCopyBuffer(queue,c,b,
+			0,
+			0,
+			sizeof(float)*N*N*2,0,NULL,NULL);
+
+
+	for(int blk=0; blk<stride;blk++)
+		for(int j= 0;j<N/stride;j++)
+		{
+			int offset = blk*N/stride +j;
+		if(N>=16)
+		{
+		Ns = 16;
+
+		SET_6_KERNEL_ARGS(interm, b, c, N, Ns,direction,offset);
+		size_t ldim[] = { 16 };
+		size_t gdim[] = { N/4 };
+
+		CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+		(queue, interm,
+		1, NULL, gdim, ldim,
+		0, NULL, NULL));
+
+		}
+
+}
+
+		clEnqueueCopyBuffer(queue,c,b,
+		0,
+		0,
+		sizeof(float)*N*N*2,0,NULL,NULL);
+
+	if(N >=64) 
+
+		
+
+		for(Ns=64; Ns<N; Ns<<=2)
+		{
+
+	for(int blk=0; blk<stride;blk++)
+		for(int j= 0;j<N/stride;j++)
+		{
+			int offset = blk*N/stride +j;
+
+		SET_6_KERNEL_ARGS(fft1D, b, c, N, Ns,direction,offset);
+		size_t ldim[] = { 1 };
+		size_t gdim[] = { N/4 };
+
+		CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, fft1D,
+				 1, NULL, gdim, ldim,
+				0, NULL, NULL));
+
+		//VecCopy(c,b,N,offset_line,vec_copy,queue);
+
+
+
+
+		}
+
+		clEnqueueCopyBuffer(queue,c,b,
+				0,
+				0,
+				sizeof(float)*N*N*2,0,NULL,NULL);
+		}
+
+#endif
+	//CALL_CL_GUARDED(clFinish, (queue));
+	//printf("1D fine \n");
+
+	mat__trans(b,c,N,mat_trans,queue,0,1,1,1);
+
+	#if 0
+	float test;
+	CALL_CL_GUARDED(clFinish, (queue));
+	CALL_CL_GUARDED(clEnqueueReadBuffer, (
+        	queue, c, /*blocking*/ CL_TRUE, /*offset*/ 2*sizeof(float)*N,
+       		sizeof(float), &test,
+        	0, NULL, NULL));
+	
+
+	printf("test = %f\n",test);
+	#endif
+
+
+
+	//CALL_CL_GUARDED(clFinish, (queue));
+
+#if 0
+	for(int j= 0;j<N;j++)
+	{
+		fft_1D_new(c,b,d,N,init,interm,fft1D,queue,direction,j);
+	}
+#endif
+#if 1
+	Ns = 1;	
+	
+
+	for(int blk=0; blk<stride;blk++)
+		for(int j= 0;j<N/stride;j++)
+		{
+			int offset = blk*N/stride +j;
+		
+		int y =0;
+		SET_7_KERNEL_ARGS(init, c, b, N, Ns,direction,offset,y);
+
+
+		size_t ldim[] = { 1 };
+		size_t gdim[] = { N/4 };
+
+		CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+			(queue, init,
+			 1, NULL, gdim, ldim,
+			0, NULL, NULL));
+	}
+
+	for(int blk=0; blk<stride;blk++)
+		for(int j= 0;j<N/stride;j++)
+		{
+			int offset = blk*N/stride +j;
+		if(N >= 4)
+		{
+		Ns = 4;
+
+		SET_6_KERNEL_ARGS(interm, b, d, N, Ns,direction,offset);
+		size_t ldim[] = { 16 };
+		size_t gdim[] = { N/4 };
+		CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+		(queue, interm,
+		 1, NULL, gdim, ldim,
+		0, NULL, NULL));
+
+		}
+}
+		
+	
+		clEnqueueCopyBuffer(queue,d,b,
+			0,
+			0,
+			sizeof(float)*N*N*2,0,NULL,NULL);
+
+
+	for(int blk=0; blk<stride;blk++)
+		for(int j= 0;j<N/stride;j++)
+		{
+			int offset = blk*N/stride +j;
+		if(N>=16)
+		{
+		Ns = 16;
+
+		SET_6_KERNEL_ARGS(interm, b, d, N, Ns,direction,offset);
+		size_t ldim[] = { 16 };
+		size_t gdim[] = { N/4 };
+
+		CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+		(queue, interm,
+		1, NULL, gdim, ldim,
+		0, NULL, NULL));
+
+		}
+
+}
+
+		clEnqueueCopyBuffer(queue,d,b,
+		0,
+		0,
+		sizeof(float)*N*N*2,0,NULL,NULL);
+
+	if(N >=64) 
+
+		
+
+		for(Ns=64; Ns<N; Ns<<=2)
+		{
+
+	for(int blk=0; blk<stride;blk++)
+		for(int j= 0;j<N/stride;j++)
+		{
+			int offset = blk*N/stride +j;
+
+		SET_6_KERNEL_ARGS(fft1D, b, d, N, Ns,direction,offset);
+		size_t ldim[] = { 1 };
+		size_t gdim[] = { N/4 };
+
+		CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, fft1D,
+				 1, NULL, gdim, ldim,
+				0, NULL, NULL));
+
+		//VecCopy(c,b,N,offset_line,vec_copy,queue);
+
+
+
+
+		}
+
+		clEnqueueCopyBuffer(queue,d,b,
+				0,
+				0,
+				sizeof(float)*N*N*2,0,NULL,NULL);
+		}
+#endif
+
+	//CALL_CL_GUARDED(clFinish, (queue));
+	if(direction == 1)
+		mat__trans(b,c,N,mat_trans,queue,0,1,1,1);
+	else 
+		mat__trans(b,c,N,mat_trans,queue,-1,1,1,1);
+	
+}
+
+
+void fft2D_big(cl_mem a, cl_mem c, cl_mem b,cl_mem d, int N, cl_kernel init_big,
+		cl_kernel clean,cl_kernel mat_trans, cl_command_queue queue,int direction)
+{
+	
+
+	for(int j= 0;j<N;j++)
+	{
+		int offset_line = j;
+			int Ns = 1;
+			int y =0;
+		SET_7_KERNEL_ARGS(init_big, a, b, N, Ns,direction,offset_line,y);
+
+
+		size_t ldim[] = { 16 };
+		size_t gdim[] = { N/4 };
+
+		CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, init_big,
+				 1, NULL, gdim, ldim,
+				0, NULL, NULL));
+}
+		
+if (N ==64 )
+			return;
+		else
+for(int j= 0;j<N;j++)
+	{
+		int offset_line = j;
+		if( N == 256 || N == 1024)
+		{
+			int Ns =1;			
+			cl_long offset = offset_line * N;
+			SET_7_KERNEL_ARGS(clean, b, c, N, Ns,direction,offset_line,y);
+			ldim[0] =4;
+
+			CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+				(queue, clean,
+				 1, NULL, gdim, ldim,
+				0, NULL, NULL));
+			if(N == 1024)
+			{
+				int option =0;
+				float k =0;
+				int n = 16;			
+				SET_8_KERNEL_ARGS(mat_trans, c, b, n, option,k,k,k,offset);
+
+				size_t ldim[] = { 16, 16 };
+				size_t gdim[] = { 16, 64 };
+				CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+					(queue, mat_trans,
+					2, NULL, gdim, ldim,
+					0, NULL, NULL));
+
+			}
+			else if(N ==256)
+			{
+				int option =0;
+				float k =0;
+				int n = 4;			
+				SET_8_KERNEL_ARGS(mat_trans, c, b, n, option,k,k,k,offset);
+
+				size_t ldim[] = { 4, 4 };
+				size_t gdim[] = { 4, 64 };
+				CALL_CL_GUARDED(clEnqueueNDRangeKernel,
+					(queue, mat_trans,
+					2, NULL, gdim, ldim,
+					0, NULL, NULL));
+
+			}	
+		
+		}
+
+		else
+		{
+			printf("FFT not implemented for this size!!!\n");
+
+			return;
+		}	
+	}
+	//CALL_CL_GUARDED(clFinish, (queue));
+	//printf("1D fine \n");
+
+	mat__trans(b,c,N,mat_trans,queue,0,1,1,1);
+
+	//CALL_CL_GUARDED(clFinish, (queue));
+	for(int j= 0;j<N;j++)
+	{
+		//fft_1D(c,b,d,N,fft_init,fft1D,queue,direction,j);
+		fft_1D_big(c, b,d,N, init_big, clean,mat_trans,queue,direction,j);
+	}
+	//CALL_CL_GUARDED(clFinish, (queue));
+	if(direction == 1)
+		mat__trans(b,c,N,mat_trans,queue,0,1,1,1);
+	else 
+		mat__trans(b,c,N,mat_trans,queue,-1,1,1,1);
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+

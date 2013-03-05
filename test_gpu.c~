@@ -1012,8 +1012,6 @@ void main(int argc, char** argv)
 	float epsilon = atof(argv[2]);
 	int k = atoi(argv[3]);
     int  N  = pow(2,k);
-	float h=2*M_PI/N;
-
 
 
 	//N =1024; k= 10;

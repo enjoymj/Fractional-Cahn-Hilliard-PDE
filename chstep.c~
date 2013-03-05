@@ -20,7 +20,7 @@ void chstep(cl_mem u, cl_mem fu0, cl_mem u1, cl_mem rhs, cl_mem fu1, cl_mem temp
 		2*N*N, vec_add, queue);
 	*fail = false;
 
-	frhs(temp,temp2,temp3,temp4,temp9,temp7,p_param,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,
+	frhs(temp,temp2,temp3,temp4,temp9,p_param,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,
 		 vec_add, queue);
 
 	#if 1
@@ -96,7 +96,7 @@ void chstep(cl_mem u, cl_mem fu0, cl_mem u1, cl_mem rhs, cl_mem fu1, cl_mem temp
 
 
 
-		frhs(temp,temp2,temp3,temp4,temp9,temp7,p_param,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,
+		frhs(temp,temp2,temp3,temp4,temp9,p_param,fft_2D,fft_2D_clean,mat_trans,mat_trans_3D,
 		 vec_add, queue);
 
 		vec__add(fu1,temp2,rhs,1,-1,2*N*N,vec_add,queue);
